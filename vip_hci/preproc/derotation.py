@@ -19,7 +19,7 @@ from ..config.utils_conf import pool_map
 from ..var import frame_center
 from ..var import frame_filter_lowpass
 from .cosmetics import frame_pad
-__author__ = 'Carlos Alberto Gomez Gonzalez, Valentin Christiaens'
+__author__ = 'C. A. Gomez Gonzalez, V. Christiaens, S. Juillard'
 __all__ = ['cube_derotate',
            'frame_rotate',
            'rotate_fft']
@@ -46,6 +46,7 @@ except ImportError:
     msg = "Pytorch python bindings are missing"
     warnings.warn(msg, ImportWarning)
     no_torch = True
+
 
 def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
                  cxy=None, border_mode='constant', mask_val=np.nan,
@@ -125,7 +126,7 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
     if edge_blend is None:
         edge_blend = ''
 
-    if edge_blend != '' or imlib in ['vip-fft', 'torch-fft'] :
+    if edge_blend != '' or imlib in ['vip-fft', 'torch-fft']:
         # fill with nans
         cy_ori, cx_ori = frame_center(array)
         y_ori, x_ori = array.shape
@@ -146,7 +147,7 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
                                                  stdfunc=np.nanstd)
 
         # pad and interpolate, about 1.2x original size
-        if imlib in ['vip-fft', 'torch-fft'] :
+        if imlib in ['vip-fft', 'torch-fft']:
             fac = 1.5
         else:
             fac = 1.1
@@ -226,8 +227,9 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
         cy, cx = frame_center(array_prep)
     else:
         cx, cy = cxy
-        if imlib in ['vip-fft', 'torch-fft'] and (cy, cx) != frame_center(array_prep):
-            msg = "'vip-fft'imlib does not yet allow for custom center to be "
+        cond_imlib = imlib in ['vip-fft', 'torch-fft']
+        if cond_imlib and (cy, cx) != frame_center(array_prep):
+            msg = "'vip-fft' imlib does not yet allow for custom center to be "
             msg += " provided "
             raise ValueError(msg)
 
@@ -313,12 +315,13 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
             msg += ' set imlib to skimage'
             raise RuntimeError(msg)
 
-        array_out = (tensor_rotate_fft(torch.unsqueeze(torch.from_numpy(array_prep),0), angle)[0]).numpy()
+        array_out = (tensor_rotate_fft(torch.unsqueeze(
+            torch.from_numpy(array_prep), 0), angle)[0]).numpy()
 
     else:
         raise ValueError('Image transformation library not recognized')
 
-    if edge_blend != '' or imlib in ['vip-fft', 'torch-fft'] :
+    if edge_blend != '' or imlib in ['vip-fft', 'torch-fft']:
         array_out = array_out[y0:y1, x0:x1]  # remove padding
         array_out[mask_ori] = mask_val      # mask again original masked values
 
@@ -638,33 +641,27 @@ def _fft_shear(arr, arr_ori, c, ax, pad=0, shift_ini=True):
     return s_x
 
 
-
 def tensor_rotate_fft(tensor, angle):
-    """ Rotates Tensor using Fourier transform phases:
-        Rotation = 3 consecutive lin. shears = 3 consecutive FFT phase shifts
-        See details in Larkin et al. (1997) and Hagelberg et al. (2016).
-        Note: this is significantly slower than interpolation methods
-        (e.g. opencv/lanczos4 or ndimage), but preserves the flux better
-        (by construction it preserves the total power). It is more prone to
-        large-scale Gibbs artefacts, so make sure no sharp edge is present in
-        the image to be rotated.
-        /!\ This is a blindly coded adaptation for Tensor of the vip function rotate_fft
-        (https://github.com/vortex-exoplanet/VIP/blob/51e1d734dcdbee1fbd0175aa3d0ab62eec83d5fa/vip_hci/preproc/derotation.py#L507)
-        /!\ This suppose the frame is perfectly centred
-        ! Warning: if input frame has even dimensions, the center of rotation
-        will NOT be between the 4 central pixels, instead it will be on the top
-        right of those 4 pixels. Make sure your images are centered with
-        respect to that pixel before rotation.
+    """Rotate Tensor using Fourier transform phases.
+
+    This is a Tensor adaptation of the vip-fft rotation function, and supposes
+    that the frame(s) are perfectly centred. If input frame(s) has even
+    dimensions, the center of rotation will NOT be between the 4 central pixels,
+    instead it will be on the top right of those 4 pixels. Make sure your images
+    are centered with respect to that pixel before rotation.
+
     Parameters
     ----------
     tensor : torch.Tensor
         Input image, 2d array.
     angle : float
         Rotation angle.
+
     Returns
     -------
     array_out : torch.Tensor
         Resulting frame.
+
     """
     y_ori, x_ori = tensor.shape[1:]
 

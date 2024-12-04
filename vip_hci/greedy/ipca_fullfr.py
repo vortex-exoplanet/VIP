@@ -18,14 +18,38 @@ The concept was proposed in [PAI18]_ and [PAI21].
    | `https://arxiv.org/abs/2008.05170
      <https://arxiv.org/abs/2008.05170>`_
 
+.. [JUI23]
+   | Juillard et al. 2023
+   | **Inverse-problem versus principal component analysis methods for angular
+   differential imaging of circumstellar disks. The mustard algorithm**
+   | *A&A 679, 52*
+   | `https://arxiv.org/abs/2309.14827
+     <https://arxiv.org/abs/2309.14827>`_
+
+.. [CHR24]
+   | Christiaens et al. 2024
+   | **MINDS: JWST/NIRCam imaging of the protoplanetary disk PDS 70. A spiral
+   accretion stream and a potential third protoplanet**
+   | *A&A 685, 1*
+   | `https://arxiv.org/abs/2403.04855
+     <https://arxiv.org/abs/2403.04855>`_
+
+.. [JUI24]
+   | Juillard et al. 2024
+   | **Combining reference-star and angular differential imaging for
+   high-contrast imaging of extended sources**
+   | *A&A 688, 185*
+   | `https://arxiv.org/abs/2406.14444
+     <https://arxiv.org/abs/2406.14444>`_
 """
 
-__author__ = 'Valentin Christiaens'
+__author__ = 'Valentin Christiaens, Sandrine Juillard'
 __all__ = ['ipca']
 
 from dataclasses import dataclass
 import numpy as np
 from typing import Union, List
+import warnings
 from ..config.paramenum import ALGO_KEY
 from ..config.utils_param import separate_kwargs_dict
 from ..config import Progressbar
@@ -42,6 +66,7 @@ except ImportError:
     msg = "GreeDS python bindings are missing."
     warn(msg, ImportWarning)
     no_greeds = True
+
 
 @dataclass
 class IPCA_Params(PCA_Params):
@@ -69,21 +94,30 @@ class IPCA_Params(PCA_Params):
 
 def ipca(*all_args: List, **all_kwargs: dict):
     """
-    Run iterative version of PCA.
+    Run iterative version of PCA (hereafter IPCA).
 
-    The algorithm finds significant disc or planet signal in the final PCA
-    image, then subtracts it from the input cube (after rotation) just before
-    (and only for) projection onto the principal components. This is repeated
-    nit times, which progressively reduces geometric biases in the image
+    The algorithm finds significant disc or planet signal in the PCA image at
+    each iteration, then subtracts it (after rotation) from the cube used to
+    build and project the principal components. This is repeated nit times,
+    which progressively reduces geometric biases in the image
     (e.g. negative side lobes for ADI).
-    This is similar to the algorithm presented in Pairet et al. (2020).
+
+    The first reported usage of IPCA is in [PAI18], although the algorithm
+    implementation here presented in [PAI21] for ADI or [JUI24].
 
     The same parameters as pca() can be provided, except 'batch'. There are two
     additional parameters related to the iterative algorithm: the number of
     iterations (nit) and the threshold (thr) used for the identification of
     significant signals.
 
-    Note: The iterative PCA can only be used in ADI, RDI, ARDI or R+ADI modes.
+    Note: IPCA can only be used in ADI, RDI, ARDI or R+ADI modes.
+
+    References:
+        - IPCA concept: [Pai18]
+        - GreeDs implementation of IPCA: [Pai21]
+        - Torch implementation of IPCA: [JUI23]
+        - IPCA with a threshold at each iteration: [CHR24]
+        - IPCA-ARDI: [JUI24]
 
     Parameters
     ----------
@@ -99,7 +133,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
         shortest wavelength in the cube (more thorough approaches can be used
         to get the scaling factors). This scaling factors are used to re-scale
         the spectral channels and align the speckles.
-    mode: str or None, opt {'Pairet18', 'Pairet21','Juillard23'}
+    mode: str or None, opt {'Pairet18', 'Pairet21','Christiaens24','Juillard23'}
         - If None: runs with provided value of 'n_comp' for 'nit' iterations,
         and considering threshold 'thr'.
         - If 'Pairet18': runs for n_comp iterations, with n_comp=1,...,n_comp,
@@ -108,12 +142,12 @@ def ipca(*all_args: List, **all_kwargs: dict):
         - If 'Pairet21': runs with n_comp=1,...,n_comp, and nit times for each
         n_comp (i.e. outer loop on n_comp, inner loop on nit). thr set to 0
         (ignored if provided). 'thr' parameter discarded, always set to 0.
-        - If 'Christiaens21': same as 'Pairet21', but with 'thr' parameter used.
-        - If 'Juillard23': Exact implementation from Juillard et al. 2023 using 
-        Torch. Parameter conventions are the same as in 'Christiaens21' and 
-        'Pairet21'. This method has no additional options for significant 
-        signal extraction and works exclusively with Torch, making it faster 
-        but also more prone to propagate noise and disk flux. Installation of 
+        - If 'Christiaens24': same as 'Pairet21', but with 'thr' parameter used.
+        - If 'Juillard23': Exact implementation from Juillard et al. 2023 using
+        Torch. Parameter conventions are the same as in 'Christiaens24' and
+        'Pairet21'. This method has no additional options for significant
+        signal extraction and works exclusively with Torch, making it faster
+        but also more prone to propagate noise and disk flux. Installation of
         the GreeDS package is required for this option.
     ncomp : int or tuple/list of int, optional
         How many PCs are used as a lower-dimensional subspace to project the
@@ -135,7 +169,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
             total number of iterations
         - if mode is 'Pairet18':
             this parameter is ignored. Number of iterations will be ncomp.
-        - if mode is 'Pairet21', 'Christiaens21' or 'Juillard23':
+        - if mode is 'Pairet21', 'Juillard23', or 'Christiaens24':
             iterations per tested ncomp.
     strategy: str {'ADI, 'RDI', 'ARDI', 'RADI'}, opt
         Whether to do iterative ADI only ('ADI'), iterative RDI only ('RDI'),
@@ -368,64 +402,75 @@ def ipca(*all_args: List, **all_kwargs: dict):
     r = algo_params.ncomp
     l = algo_params.nit
 
-    if algo_params.mode=="Juillard23":
+    if algo_params.mode == "Juillard23":
         if no_greeds:
-            msg = 'GreeDS Python bindings cannot be imported. Install GreeDS (pip install GreeDS) or use a different method.'
+            msg = 'GreeDS Python bindings cannot be imported. Install GreeDS'
+            msg += ' (pip install GreeDS) or use a different method.'
             raise RuntimeError(msg)
-        if algo_params.strategy not in ['ADI',"ARDI"]:
+        if algo_params.strategy not in ['ADI', "ARDI"]:
             msg = 'Juillard23 not compatible with this mode.'
             raise RuntimeError(msg)
 
         if algo_params.strategy == 'ARDI':
-                ref = algo_params.cube_ref.copy()
-        else : ref = None
-        
+            ref = algo_params.cube_ref.copy()
+        else:
+            ref = None
+
         mask_center_px = algo_params.mask_center_px
         pup = mask_center_px if mask_center_px is not None else 0
-        
-        if algo_params.full_output is True : 
-            it_cube, star_estim = GreeDS(algo_params.cube, algo_params.angle_list, refs=ref,r=r, l=l, r_start=1, pup=pup, full_output=1, returnL=True)
-        else : it_cube = GreeDS(algo_params.cube, algo_params.angle_list, refs=ref,r=r, l=l, r_start=1, pup=pup, full_output=1, returnL=False)
+
+        if algo_params.full_output is True:
+            it_cube, star_estim = GreeDS(algo_params.cube,
+                                         algo_params.angle_list,
+                                         refs=ref, r=r, l=l, r_start=1, pup=pup,
+                                         full_output=1, returnL=True)
+        else:
+            it_cube = GreeDS(algo_params.cube, algo_params.angle_list,
+                             refs=ref, r=r, l=l, r_start=1, pup=pup,
+                             full_output=1, returnL=False)
         frame = it_cube[-1]
-        
+
         # Set results matching full outputs
-        it=len(it_cube)-1
+        it = len(it_cube)-1
         algo_params.thr = 0
 
-        stim_cube = it_cube_nd = sig_images = nstim = sig_mask = np.zeros(it_cube.shape)
+        stim_cube = it_cube_nd = sig_images = nstim = np.zeros(it_cube.shape)
+        sig_mask = np.zeros(it_cube.shape)
 
-        if algo_params.full_output is True :       
-            print(algo_params.cube.shape)     
-            print(star_estim.shape)      
+        if algo_params.full_output is True:
+            print(algo_params.cube.shape)
+            print(star_estim.shape)
             residuals_cube_ = cube_derotate(algo_params.cube - star_estim[-1],
-                            algo_params.angle_list,
-                            imlib="torch-fft",
-                            nproc=algo_params.nproc) - frame
-            
+                                            algo_params.angle_list,
+                                            imlib="torch-fft",
+                                            nproc=algo_params.nproc) - frame
+
             residuals_cube = cube_derotate(residuals_cube_,
-                                -algo_params.angle_list,
-                                imlib="torch-fft",
-                                nproc=algo_params.nproc)
+                                           -algo_params.angle_list,
+                                           imlib="torch-fft",
+                                           nproc=algo_params.nproc)
 
             if algo_params.thr_mode == 'STIM':
                 for it_i in range(len(it_cube)):
-                    residuals_cube__i = cube_derotate(algo_params.cube - star_estim[it_i],
-                            algo_params.angle_list,
-                            imlib="torch-fft",
-                            nproc=algo_params.nproc) - it_cube[it_i]
-            
+                    cube_tmp = algo_params.cube - star_estim[it_i]
+                    der_cube = cube_derotate(cube_tmp, algo_params.angle_list,
+                                             imlib="torch-fft",
+                                             nproc=algo_params.nproc)
+                    residuals_cube__i = der_cube - it_cube[it_i]
+
                     residuals_cube_i = cube_derotate(residuals_cube__i,
-                                -algo_params.angle_list,
-                                imlib="torch-fft",
-                                nproc=algo_params.nproc)
-                    
-                    sig_mask_i, nstim_i = _find_significant_signals(residuals_cube_i,
-                                                                residuals_cube__i,
-                                                                algo_params.angle_list,
-                                                                algo_params.thr,
-                                                                mask=mask_center_px,
-                                                                r_out=algo_params.r_out)
-                        
+                                                     -algo_params.angle_list,
+                                                     imlib="torch-fft",
+                                                     nproc=algo_params.nproc)
+
+                    res = _find_significant_signals(residuals_cube_i,
+                                                    residuals_cube__i,
+                                                    algo_params.angle_list,
+                                                    algo_params.thr,
+                                                    mask=mask_center_px,
+                                                    r_out=algo_params.r_out)
+                    sig_mask_i, nstim_i = res
+
                     sig_mask[it_i] = sig_mask_i.copy()
                     nstim[it_i] = nstim_i.copy()
 
@@ -440,9 +485,8 @@ def ipca(*all_args: List, **all_kwargs: dict):
             stim_cube = nstim.copy()
 
     else:
-            
         # 1. Prepare/format additional parameters depending on chosen options
-        mask_center_px = algo_params.mask_center_px  # None? what's better in pca?
+        mask_center_px = algo_params.mask_center_px  # None or not?
         mask_rdi_tmp = None
         if algo_params.strategy == 'ADI' and algo_params.cube_ref is None:
             ref_cube = None
@@ -462,7 +506,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
                 raise ValueError("cube_ref should be provided for RDI or RADI")
             if algo_params.strategy == 'ARDI' and algo_params.mask_rdi is None:
                 ref_cube = np.concatenate((algo_params.cube,
-                                        algo_params.cube_ref), axis=0)
+                                           algo_params.cube_ref), axis=0)
             else:
                 ref_cube = algo_params.cube_ref.copy()
         else:
@@ -491,9 +535,10 @@ def ipca(*all_args: List, **all_kwargs: dict):
             final_ncomp = list(range(1, ncomp_tmp+1, algo_params.ncomp_step))
             if algo_params.mode == 'Pairet18':
                 algo_params.nit = ncomp_tmp
-                final_ncomp = list(range(1, ncomp_tmp+1, algo_params.ncomp_step))
+                final_ncomp = list(range(1, ncomp_tmp+1,
+                                         algo_params.ncomp_step))
                 algo_params.thr = 0
-            elif algo_params.mode in ['Pairet21', 'Christiaens21']:
+            elif algo_params.mode in ['Pairet21', 'Christiaens24']:
                 final_ncomp = []
                 for npc in range(1, ncomp_tmp+1, algo_params.ncomp_step):
                     for ii in range(algo_params.nit):
@@ -506,13 +551,13 @@ def ipca(*all_args: List, **all_kwargs: dict):
 
         # Scale cube and cube_ref if necessary
         cube_tmp = prepare_matrix(algo_params.cube, scaling=algo_params.scaling,
-                                mask_center_px=mask_center_px, mode='fullfr',
-                                verbose=False)
+                                  mask_center_px=mask_center_px, mode='fullfr',
+                                  verbose=False)
         cube_tmp = np.reshape(cube_tmp, algo_params.cube.shape)
         if ref_cube is not None:
             cube_ref_tmp = prepare_matrix(ref_cube, scaling=algo_params.scaling,
-                                        mask_center_px=mask_center_px,
-                                        mode='fullfr', verbose=False)
+                                          mask_center_px=mask_center_px,
+                                          mode='fullfr', verbose=False)
             cube_ref_tmp = np.reshape(cube_ref_tmp, ref_cube.shape)
         else:
             cube_ref_tmp = None
@@ -566,9 +611,9 @@ def ipca(*all_args: List, **all_kwargs: dict):
         stim_cube[0] = nstim.copy()
         mask_rdi_tmp = None  # after first iteration do not use it any more
 
-        # 4.Loop, updating the reference cube before projection by subtracting the
+        # 4. Loop, updating the reference cube before projection by subtracting
         #   best disc estimate. This is done by providing sig_cube.
-        cond_skip = False  # whether to skip an iteration (e.g. in incremental mode)
+        cond_skip = False  # whether skip an iteration e.g. in incremental mode
         for it in Progressbar(range(1, algo_params.nit), desc="Iterating..."):
             if not cond_skip:
                 # Uncomment here (and comment below) to do like IROLL
@@ -577,19 +622,20 @@ def ipca(*all_args: List, **all_kwargs: dict):
                 # create and rotate sig cube
                 sig_cube = np.repeat(frame[np.newaxis, :, :], nframes, axis=0)
                 sig_cube = cube_derotate(sig_cube, -algo_params.angle_list,
-                                        imlib=algo_params.imlib,
-                                        nproc=algo_params.nproc)
+                                         imlib=algo_params.imlib,
+                                         nproc=algo_params.nproc)
 
                 if algo_params.thr_mode == 'STIM':
                     # create and rotate binary mask
                     mask_sig = np.zeros_like(sig_image)
                     mask_sig[np.where(sig_image > 0)] = 1
                     sig_mcube = np.repeat(mask_sig[np.newaxis, :, :], nframes,
-                                        axis=0)
-                    sig_mcube = cube_derotate(sig_mcube, -algo_params.angle_list,
-                                            imlib='skimage',
-                                            interpolation='bilinear',
-                                            nproc=algo_params.nproc)
+                                          axis=0)
+                    sig_mcube = cube_derotate(sig_mcube,
+                                              -algo_params.angle_list,
+                                              imlib='skimage',
+                                              interpolation='bilinear',
+                                              nproc=algo_params.nproc)
                     sig_cube[np.where(sig_mcube < 0.5)] = 0
                     sig_cube[np.where(sig_cube < 0)] = 0
                 else:
@@ -597,11 +643,11 @@ def ipca(*all_args: List, **all_kwargs: dict):
 
                 if algo_params.strategy == 'ARDI':
                     ref_cube = np.concatenate((algo_params.cube-sig_cube,
-                                            algo_params.cube_ref), axis=0)
+                                               algo_params.cube_ref), axis=0)
                     cube_ref_tmp = prepare_matrix(ref_cube,
-                                                scaling=algo_params.scaling,
-                                                mask_center_px=mask_center_px,
-                                                mode='fullfr', verbose=False)
+                                                  scaling=algo_params.scaling,
+                                                  mask_center_px=mask_center_px,
+                                                  mode='fullfr', verbose=False)
                     cube_ref_tmp = np.reshape(cube_ref_tmp, ref_cube.shape)
 
                 # Run PCA on original cube
@@ -623,7 +669,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
                 # smoothing and manual derotation if requested
                 if smooth_ker[it] is not None:
                     residuals_cube = _blurring_3d(residuals_cube, None,
-                                                fwhm_sz=smooth_ker[it])
+                                                  fwhm_sz=smooth_ker[it])
                     residuals_cube_ = cube_derotate(residuals_cube,
                                                     algo_params.angle_list,
                                                     imlib=algo_params.imlib,
@@ -643,12 +689,13 @@ def ipca(*all_args: List, **all_kwargs: dict):
                 frame_nd = res_nd[0]
 
                 if algo_params.thr_mode == 'STIM':
-                    sig_mask, nstim = _find_significant_signals(residuals_cube_nd,
-                                                                residuals_cube_,
-                                                                algo_params.angle_list,
-                                                                algo_params.thr,
-                                                                mask=mask_center_px,
-                                                                r_out=algo_params.r_out)
+                    res = _find_significant_signals(residuals_cube_nd,
+                                                    residuals_cube_,
+                                                    algo_params.angle_list,
+                                                    algo_params.thr,
+                                                    mask=mask_center_px,
+                                                    r_out=algo_params.r_out)
+                    sig_mask, nstim = res
                 else:
                     sig_mask = np.ones_like(frame)
                     sig_mask[np.where(frame < algo_params.thr)] = 0
@@ -657,7 +704,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
                 inv_sig_mask[np.where(sig_mask)] = 0
                 if mask_center_px:
                     inv_sig_mask = mask_circle(inv_sig_mask, mask_center_px,
-                                            fillwith=1)
+                                               fillwith=1)
                 sig_image = frame.copy()
                 sig_image[np.where(inv_sig_mask)] = 0
                 sig_image[np.where(sig_image < 0)] = 0
@@ -671,24 +718,26 @@ def ipca(*all_args: List, **all_kwargs: dict):
             # check if improvement compared to last iteration
             if it > 1:
                 cond1 = np.allclose(sig_image, sig_images[it-1],
-                                    rtol=algo_params.rtol, atol=algo_params.atol)
+                                    rtol=algo_params.rtol,
+                                    atol=algo_params.atol)
                 cond2 = np.allclose(sig_image, sig_images[it-2],
-                                    rtol=algo_params.rtol, atol=algo_params.atol)
+                                    rtol=algo_params.rtol,
+                                    atol=algo_params.atol)
                 if cond1 or cond2:
-                    # if convergence in incremental mode: skip iterations until the
+                    # if convergence in incremental mode: skip iterations until
                     # next increment in ncomp
-                    cond_mode = algo_params.mode in ['Pairet21', 'Christiaens21']
+                    cond_mod = algo_params.mode in ['Pairet21', 'Christiaens24']
                     cond_it = (it % nit_ori != nit_ori-1)
-                    if cond_mode and cond_it:
+                    if cond_mod and cond_it:
                         cond_skip = True
                     else:
                         cond_skip = False
+                        condc = algo_params.continue_without_smooth_after_conv
+                        msg = "Convergence criterion met after {} iterations"
+                        msg2 = "...Smoothing turned off and iterating more"
                         if algo_params.strategy in ['ADI', 'RDI', 'ARDI']:
-                            msg = "Convergence criterion met after {} iterations"
-                            condB = algo_params.continue_without_smooth_after_conv
-                            if smooth_ker[it] is not None and condB:
+                            if smooth_ker[it] is not None and condc:
                                 smooth_ker[it+1:] = None
-                                msg2 = "...Smoothing turned off and iterating more"
                                 if algo_params.verbose:
                                     print(msg.format(it)+msg2)
                             else:

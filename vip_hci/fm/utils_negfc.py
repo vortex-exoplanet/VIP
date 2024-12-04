@@ -1,107 +1,17 @@
 #! /usr/bin/env python
 """
-Module with post-processing related functions called from within the NEGFC
-algorithm.
+Module with utility function called from within the NEGFC algorithm.
 """
 
-__author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['cube_planet_free',
-           'find_nearest']
+__author__ = 'Valentin Christiaens'
+__all__ = ['find_nearest']
 
 import numpy as np
-from ..fm import cube_inject_companions
-
-
-def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
-                     interpolation='lanczos4', transmission=None, nproc=None):
-    """
-    Return a cube in which we have injected negative fake companion at the
-    position/flux given by planet_parameter.
-
-    Parameters
-    ----------
-    planet_parameter: numpy.array or list or tuple
-        The (r, theta, flux) for all known companions. For a 4d cube r,
-        theta and flux must all be 1d arrays with length equal to cube.shape[0];
-        i.e. planet_parameter should have shape: (n_pl,3,n_ch).
-    cube: numpy ndarray
-        The cube of fits images expressed as a numpy.array.
-    angs: numpy ndarray
-        The parallactic angle fits image expressed as a numpy.array.
-    psfn: 2d or 3d numpy ndarray
-        The normalized psf expressed as a numpy ndarray. Can be 3d for a 4d
-        (spectral+ADI) input cube.
-    imlib : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    interpolation : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    transmission: numpy array, optional
-        Radial transmission of the coronagraph, if any. Array with either
-        2 x n_rad, 1+n_ch x n_rad columns. The first column should contain the
-        radial separation in pixels, while the other column(s) are the
-        corresponding off-axis transmission (between 0 and 1), for either all,
-        or each spectral channel (only relevant for a 4D input cube).
-    nproc: int or None, optional
-        Number of CPUs to use for multiprocessing.
-
-    Returns
-    -------
-    cpf : numpy.array
-        The cube with negative companions injected at the position given in
-        planet_parameter.
-
-    """
-    cpf = np.zeros_like(cube)
-
-    # unify planet_parameter format
-    planet_parameter = np.array(planet_parameter)
-    cond1 = cube.ndim == 3 and planet_parameter.ndim < 2
-    cond2 = cube.ndim == 4 and planet_parameter.ndim < 3
-    if cond1 or cond2:
-        planet_parameter = planet_parameter[np.newaxis, :]
-
-    if cube.ndim == 4:
-        if planet_parameter.shape[2] != cube.shape[0]:
-            raise TypeError("Input planet parameter with wrong dimensions.")
-
-    for i in range(planet_parameter.shape[0]):
-        if i == 0:
-            cube_temp = cube
-        else:
-            cube_temp = cpf
-
-        if cube.ndim == 4:
-            for j in range(cube.shape[0]):
-                flevel = -planet_parameter[i, 2, j]
-                r = planet_parameter[i, 0, j]
-                theta = planet_parameter[i, 1, j]
-                cpf[j] = cube_inject_companions(cube_temp[j], psfn[j], angs,
-                                                flevel=flevel,
-                                                rad_dists=[r],
-                                                n_branches=1,
-                                                theta=theta,
-                                                imlib=imlib,
-                                                interpolation=interpolation,
-                                                verbose=False,
-                                                transmission=transmission,
-                                                nproc=nproc)
-        else:
-            cpf = cube_inject_companions(cube_temp, psfn, angs, n_branches=1,
-                                         flevel=-planet_parameter[i, 2],
-                                         rad_dists=[planet_parameter[i, 0]],
-                                         theta=planet_parameter[i, 1],
-                                         imlib=imlib, verbose=False,
-                                         interpolation=interpolation,
-                                         transmission=transmission,
-                                         nproc=nproc)
-    return cpf
 
 
 def find_nearest(array, value, output='index', constraint=None, n=1):
-    """
-    Function to find the indices, and optionally the values, of an array's n
-    closest elements to a certain value.
-    By default, only returns the index/indices.
+    """Find the indices, and optionally the values, of an array's n closest\
+    elements to a certain value. By default, only returns the index/indices.
 
     Possible constraints: 'ceil', 'floor', None ("ceil" will return the closest
     element with a value greater than 'value', "floor" the opposite).

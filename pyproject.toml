@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+dynamic = ["version", "dependencies"]
+name = "test"
+requires-python = ">=3.8"
+authors = [
+  {name = "Carlos Alberto Gomez Gonzalez", email = "carlosgg33@gmail.com"},
+]
+maintainers = [
+  {name = "Valentin Christiaens", email = "valentinchrist@hotmail.com"}
+]
+description = "Package for astronomical high-contrast image processing"
+readme = "README.rst"
+classifiers = [
+    'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: MIT License',
+    'Operating System :: MacOS :: MacOS X',
+    'Operating System :: POSIX :: Linux',
+    'Natural Language :: English',
+    'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
+    'Topic :: Scientific/Engineering :: Astronomy'
+]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[project.urls]
+Documentation = "https://vip.readthedocs.io/en/latest/"
+Repository = "https://github.com/vortex-exoplanet/VIP"

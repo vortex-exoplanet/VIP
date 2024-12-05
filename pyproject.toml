@@ -1,19 +1,20 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools", "wheel", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+version_scheme = "guess-next-dev"
+local_scheme = "no-local-version"
 
 [project]
 dynamic = ["version", "dependencies"]
-name = "test"
+name = "vip_hci"
+license = {text = "MIT"}
+readme = {file = "README.rst", content-type = "text/x-rst"}
 requires-python = ">=3.8"
-authors = [
-  {name = "Carlos Alberto Gomez Gonzalez", email = "carlosgg33@gmail.com"},
-]
-maintainers = [
-  {name = "Valentin Christiaens", email = "valentinchrist@hotmail.com"}
-]
+authors = [{name = "Carlos Alberto Gomez Gonzalez", email = "carlosgg33@gmail.com"}]
+maintainers = [{name = "Valentin Christiaens", email = "valentinchrist@hotmail.com"}]
 description = "Package for astronomical high-contrast image processing"
-readme = "README.rst"
 classifiers = [
     'Intended Audience :: Science/Research',
     'License :: OSI Approved :: MIT License',
@@ -25,8 +26,42 @@ classifiers = [
     'Topic :: Scientific/Engineering :: Astronomy'
 ]
 
+[tool.setuptools]
+packages = ['vip_hci',
+            'vip_hci.config',
+            'vip_hci.fits',
+            'vip_hci.fm',
+            'vip_hci.invprob',
+            'vip_hci.metrics',
+            'vip_hci.objects',
+            'vip_hci.preproc',
+            'vip_hci.psfsub',
+            'vip_hci.stats',
+            'vip_hci.var']
+
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
+
+[project.optional-dependencies]
+dev = [
+    "sphinx",
+    "myst-nb",
+    "myst-parser",
+    "pandoc",
+    "nbsphinx",
+    "sphinx_rtd_theme",
+    "jupyter_sphinx",
+    "pytest",
+    "pytest-cov ~=2.6.0",
+    "pytest-split",
+    "flake8",
+    "flake8-bandit",
+    "flake8-docstrings",
+    "autopep8",
+    "pre-commit",
+    "opencv-python",
+    "ratelimit"
+]
 
 [project.urls]
 Documentation = "https://vip.readthedocs.io/en/latest/"

@@ -1,0 +1,18 @@
+-r requirements.txt
+opencv-python
+sphinx
+myst-nb
+myst-parser
+pandoc
+pytest
+pytest-cov ~=2.6.0
+pytest-split
+flake8
+flake8-bandit
+flake8-docstrings
+autopep8
+ratelimit
+pre-commit
+nbsphinx
+sphinx_rtd_theme
+jupyter_sphinx

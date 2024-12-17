@@ -60,7 +60,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         of spectral channels (flux at each wavelength).
     angle_range: 1d numpy array
         Range of angles (counted from x=0 axis, counter-clockwise) at which the
-        fake companions will be injected, in [0,360[.
+        fake companions will be injected, in [0,360].
     derot_angles: 1d numpy array
         Derotation angles for ADI. Length should match input cube.
     algo: python routine
@@ -96,7 +96,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         If set to None: not used, and falls back to original version of the
         algorithm, using fmerit.
         If a tuple of 2 elements: should be the mean and standard deviation of
-        pixel intensities in an annulus centered on the lcoation of the
+        pixel intensities in an annulus centered on the location of the
         companion candidate, excluding the area directly adjacent to the CC.
         If set to anything else, but None/False/tuple: will compute said mean
         and standard deviation automatically.
@@ -157,7 +157,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     save: bool, optional
         If True, the result are pickled.
     verbose: bool, optional
-        If True, informations are displayed in the shell.
+        If True, information is displayed in the shell.
     plot: bool, optional
         Whether to plot the gaussian fit to the distributions of parameter
         deviations (between retrieved and injected).
@@ -366,9 +366,6 @@ def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true,
                                      imlib=imlib, interpolation=interpolation,
                                      verbose=False)
 
-    ncomp = algo_options.get('ncomp', 1)
-    annulus_width = algo_options.get('annulus_width', int(fwhm))
-
     if cube_pf.ndim == 4:
         p_ini = [r_true, angle]
         for f in f_true:
@@ -377,10 +374,14 @@ def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true,
     else:
         p_ini = (r_true, angle, f_true)
 
+    ncomp = algo_options.get('ncomp', 1)
+    annulus_width = algo_options.get('annulus_width', int(fwhm))
+    delta_rot = algo_options.get('delta_rot', 1)
+
     res_simplex = firstguess_simplex(p_ini, cube_fc, angs,
                                      psfn, ncomp, fwhm, annulus_width,
                                      aperture_radius, cube_ref=cube_ref,
-                                     fmerit=fmerit, algo=algo,
+                                     fmerit=fmerit, algo=algo, delta_rot=delta_rot,
                                      algo_options=algo_options, imlib=imlib,
                                      interpolation=interpolation,
                                      transmission=transmission,

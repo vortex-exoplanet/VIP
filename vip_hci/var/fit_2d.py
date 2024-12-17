@@ -75,9 +75,9 @@ def create_synth_psf(model='gauss', shape=(9, 9), amplitude=1, x_mean=None,
     Note
     ----
     More information can be found at the following links:
-        http://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.Gaussian2D.html
-        http://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.Moffat2D.html
-        http://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.AiryDisk2D.html
+        https://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.Gaussian2D.html
+        https://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.Moffat2D.html
+        https://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.AiryDisk2D.html
 
     https://www.gnu.org/software/gnuastro/manual/html_node/PSF.html
     web.ipac.caltech.edu/staff/fmasci/home/astro_refs/PSFtheory.pdf

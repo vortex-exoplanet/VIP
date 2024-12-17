@@ -132,7 +132,7 @@ class PCA_Params:
 
 
 def pca(*all_args: List, **all_kwargs: dict):
-    """Full-frame PCA algorithm applied to PSF substraction.
+    """Full-frame PCA algorithm applied to PSF subtraction.
 
     The reference PSF and the quasi-static speckle pattern are modeled using
     Principal Component Analysis. Depending on the input parameters this PCA
@@ -156,11 +156,11 @@ def pca(*all_args: List, **all_kwargs: dict):
     Parameters
     ----------
     all_args: list, optional
-        Positionnal arguments for the PCA algorithm. Full list of parameters
+        Positional arguments for the PCA algorithm. Full list of parameters
         below.
     all_kwargs: dictionary, optional
         Mix of keyword arguments that can initialize a PCA_Params and the
-        optional 'rot_options' dictionnary (with keyword values ``border_mode``,
+        optional 'rot_options' dictionary (with keyword values ``border_mode``,
         ``mask_val``, ``edge_blend``, ``interp_zeros``, ``ker``; see docstring
         of ``vip_hci.preproc.frame_rotate``). Can also contain a PCA_Params
         dictionary named `algo_params`.

@@ -516,7 +516,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
           'sum' when residual speckle noise is still significant):\
           :math:`\chi^2 = N \sigma_{I_j}(values,ddof=1)*values.size`
         - ``mu_sigma=True`` or a tuple (as in [CHR21]_, new default):\
-          :math:`\chi^2 = \sum\frac{(I_j- mu)^2}{\sigma^2}`
+          :math:`\chi^2 = \sum\frac{I_j- \mu)^2}{\sigma^2}`
 
     where :math:`j \in {1,...,N}` with N the total number of pixels
     contained in the circular aperture, :math:`\sigma_{I_j}` is the standard
@@ -999,7 +999,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
                     if verbosity > 0:
                         print('   r_hat = {}'.format(rhat))
                         cond = rhat <= rhat_threshold
-                        print('   r_hat <= threshold = {} \n'.format(cond))
+                        print('   r_hat <= threshold = {} \n'.format(cond), flush=True)
                     # We test the rhat.
                     if (rhat <= rhat_threshold).all():
                         rhat_count += 1
@@ -1025,7 +1025,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
                     thr = 1./ac_c
                     if verbosity > 0:
                         print('Auto-corr tau/N = {}'.format(rhat))
-                        print('tau/N <= {} = {} \n'.format(thr, rhat < thr))
+                        print('tau/N <= {} = {} \n'.format(thr, rhat < thr), flush=True)
                     if (rhat <= thr).all():
                         ac_count += 1
                         if verbosity > 0:

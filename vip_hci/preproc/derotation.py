@@ -291,7 +291,7 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
         elif interpolation == 'lanczos4':
             intp = cv2.INTER_LANCZOS4
         else:
-            raise ValueError('Opencv interpolation method not recognized')
+            raise ValueError(f'Opencv interpolation method `{interpolation}` is not recognized')
 
         if border_mode == 'constant':
             bormo = cv2.BORDER_CONSTANT  # iiiiii|abcdefgh|iiiiiii

@@ -49,7 +49,6 @@ __all__ = ['ipca']
 from dataclasses import dataclass
 import numpy as np
 from typing import Union, List
-import warnings
 from ..config.paramenum import ALGO_KEY
 from ..config.utils_param import separate_kwargs_dict
 from ..config import Progressbar
@@ -62,8 +61,9 @@ try:
     from GreeDS import GreeDS
     no_greeds = False
 except ImportError:
+    from warnings import warn
     msg = "GreeDS python bindings are missing."
-    warnings.warn(msg, ImportWarning)
+    warn(msg, ImportWarning)
     no_greeds = True
 
 

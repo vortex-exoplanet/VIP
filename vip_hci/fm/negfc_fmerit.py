@@ -5,6 +5,7 @@ __author__ = "O. Wertz, Carlos Alberto Gomez Gonzalez, Valentin Christiaens"
 __all__ = ["get_mu_and_sigma"]
 
 import numpy as np
+
 from hciplot import plot_frames
 from skimage.draw import disk
 from ..fm import cube_inject_companions, cube_planet_free
@@ -490,8 +491,10 @@ def get_values_optimize(
         max_frames_lib = algo_opt_copy.pop("max_frames_lib", 200)
         radius_int = max(1, int(np.floor(r_guess - annulus_width / 2)))
         radius_int = algo_opt_copy.pop("radius_int", radius_int)
+        asize = algo_opt_copy.pop("asize", annulus_width)
+        delta_rot = algo_opt_copy.pop("delta_rot", delta_rot)
         # crop cube to just be larger than annulus => FASTER PCA
-        crop_sz = int(2 * np.ceil(radius_int + annulus_width + 1))
+        crop_sz = int(2 * np.ceil(radius_int + asize + 1))
         if not crop_sz % 2:
             crop_sz += 1
         if crop_sz < cube.shape[-2] and crop_sz < cube.shape[-1]:
@@ -507,7 +510,7 @@ def get_values_optimize(
                 cube_ref=cube_ref,
                 radius_int=radius_int,
                 fwhm=fwhm,
-                asize=annulus_width,
+                asize=asize,
                 delta_rot=delta_rot,
                 ncomp=ncomp,
                 svd_mode=svd_mode,
@@ -553,6 +556,9 @@ def get_values_optimize(
     elif algo == pca:
         scale_list = algo_opt_copy.pop("scale_list", None)
         ifs_collapse_range = algo_opt_copy.pop("ifs_collapse_range", "all")
+        mask_rdi = algo_options.pop("mask_rdi", None)
+        delta_rot = algo_options.pop("delta_rot", delta_rot)
+        source_xy = algo_options.pop("source_xy", None)
         res = pca(
             cube=cube,
             angle_list=angs,
@@ -561,6 +567,8 @@ def get_values_optimize(
             ncomp=ncomp,
             svd_mode=svd_mode,
             scaling=scaling,
+            delta_rot=delta_rot,
+            source_xy=source_xy,
             imlib=imlib,
             interpolation=interpolation,
             collapse=collapse,
@@ -748,6 +756,7 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
     collapse = algo_options.get("collapse", collapse)
 
     radius_int = max(int(np.floor(r_guess - annulus_width / 2)), 0)
+    radius_int = algo_options.get("radius_int", radius_int)
 
     # not recommended, except if large-scale residual sky present (NIRC2-L')
     hp_filter = algo_options.get("hp_filter", None)
@@ -864,6 +873,7 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
         scale_list = algo_options.get("scale_list", None)
         ifs_collapse_range = algo_options.get("ifs_collapse_range", "all")
         nproc = algo_options.get("nproc", 1)
+        source_xy = algo_options.get("source_xy", None)
 
         pca_res = pca(
             cube=array,
@@ -873,6 +883,8 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
             ncomp=ncomp,
             svd_mode=svd_mode,
             scaling=scaling,
+            delta_rot=delta_rot,
+            source_xy=source_xy,
             imlib=imlib,
             interpolation=interpolation,
             collapse=collapse,
@@ -890,6 +902,8 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
                 ncomp=ncomp,
                 svd_mode=svd_mode,
                 scaling=scaling,
+                delta_rot=delta_rot,
+                source_xy=source_xy,
                 imlib=imlib,
                 interpolation=interpolation,
                 collapse=collapse,

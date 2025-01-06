@@ -619,7 +619,7 @@ def firstguess(cube, angs, psfn, planets_xy_coord, ncomp=1, fwhm=4,
         If set to None: not used, and falls back to original version of the
         algorithm, using fmerit.
         If a tuple of 2 elements: should be the mean and standard deviation of
-        pixel intensities in an annulus centered on the lcoation of the
+        pixel intensities in an annulus centered on the location of the
         companion candidate, excluding the area directly adjacent to the CC.
         If set to anything else, but None/False/tuple: will compute said mean
         and standard deviation automatically.
@@ -762,7 +762,7 @@ def firstguess(cube, angs, psfn, planets_xy_coord, ncomp=1, fwhm=4,
             print(msg3a.format(i_planet, r_pre, theta_pre))
             msg3b = 'Planet {}: preliminary flux guess: '.format(i_planet)
             for z in range(len(f_pre)):
-                msg3b += '{:.1f}'.format(f_pre[z])
+                msg3b += '{:.2f}'.format(f_pre[z])
                 if z < len(f_pre)-1:
                     msg3b += ', '
             print(msg3b)

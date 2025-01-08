@@ -1,4 +1,4 @@
-from .__version import __version__
+from ._version import __version__
 
 from . import preproc
 from . import config

@@ -1,5 +1,3 @@
-__version__ = "1.6.4"
-
 from . import preproc
 from . import config
 from . import fits

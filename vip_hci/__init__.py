@@ -10,4 +10,8 @@ from . import var
 from . import objects
 from .vip_ds9 import *
 
-from ._version import __version__
+try:
+    from ._version import __version__
+except ImportError:
+    # package is not installed
+    pass

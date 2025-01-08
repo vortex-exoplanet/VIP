@@ -25,7 +25,7 @@ matplotlib.use("agg")
 
 sys.path.insert(0, os.path.abspath('../../vip_hci/'))
 
-with open(os.path.join(os.path.abspath('../../vip_hci/'), '__init__.py')) as init:
+with open(os.path.join(os.path.abspath('../../vip_hci/'), '__version.py')) as init:
     for line in init:
         if "__version__ =" in line:
             version = line.split('"')[1]

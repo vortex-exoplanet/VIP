@@ -1,3 +1,5 @@
+from ._version import __version__
+
 from . import preproc
 from . import config
 from . import fits

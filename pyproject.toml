@@ -3,8 +3,6 @@ requires = ["setuptools", "wheel", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-version_scheme = "guess-next-dev"
-local_scheme = "no-local-version"
 version_file = "vip_hci/_version.py"
 
 [project]
@@ -23,7 +21,6 @@ classifiers = [
     'Operating System :: POSIX :: Linux',
     'Operating System :: Microsoft :: Windows',
     'Natural Language :: English',
-    'Programming Language :: Python :: 3.7',
     'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',

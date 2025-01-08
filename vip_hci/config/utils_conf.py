@@ -16,11 +16,14 @@ from inspect import signature, Parameter
 from functools import wraps
 import multiprocessing
 import warnings
-from vip_hci import __version__
 
 sep = "―" * 80
 vip_figsize = (8, 5)
 vip_figdpi = 100
+
+def get_vip_version():
+    from vip_hci import __version__  # Delayed import to avoid circular import
+    return __version__
 
 
 def print_precision(array, precision=3):
@@ -60,7 +63,7 @@ class Saveable(object):
                         data["_item_{}".format(a)] = True
 
                 np.savez_compressed(
-                    filename, _vip_version=__version__, _vip_object=vip_object, **data
+                    filename, _vip_version=get_vip_version(), _vip_object=vip_object, **data
                 )
 
         else:

@@ -9,6 +9,7 @@ _pycache__/
 build
 dist
 *.egg-info
+*_version.py
 
 # documentation / sphinx
 docs/build

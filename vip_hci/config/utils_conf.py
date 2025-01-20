@@ -474,15 +474,13 @@ def pool_map(nproc, fkt, *args, **kwargs):
     else:
         # Check available start methods and pick accordingly (machine-dependent)
         avail_methods = multiprocessing.get_all_start_methods()
-        if 'fork' in avail_methods:
+        if 'forkserver' in avail_methods:
             # faster when available
             warnings.filterwarnings("error")  # allows to catch warning as error
             try:
-                multiprocessing.set_start_method("fork", force=True)
+                multiprocessing.set_start_method("forkserver", force=True)
             except (DeprecationWarning, OSError):
                 multiprocessing.set_start_method("spawn", force=True)
-        elif 'forkserver' in avail_methods:
-            multiprocessing.set_start_method("forkserver", force=True)
         else:
             multiprocessing.set_start_method("spawn", force=True)
         warnings.resetwarnings()  # reset warning behaviour to default

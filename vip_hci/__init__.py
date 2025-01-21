@@ -13,5 +13,8 @@ from .vip_ds9 import *
 try:
     from ._version import __version__
 except ImportError:
-    # package is not installed
-    pass
+    from importlib.metadata import version, PackageNotFoundError
+    try:
+        __version__ = version(__name__)
+    except PackageNotFoundError:
+        __version__ = "0.0.0"  # Default version

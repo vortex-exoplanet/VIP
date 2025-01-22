@@ -915,16 +915,16 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     os.environ["OMP_NUM_THREADS"] = "1"
 
     with Pool() as pool:
-        sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob, a=a,
+        sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob,
+                                        pool=pool, moves=emcee.moves.StretchMove(a=2),
                                         args=([bounds, cube, angs, psfn,
-                                               fwhm, annulus_width, ncomp,
-                                               aperture_radius, initial_state,
-                                               cube_ref, svd_mode, scaling, algo,
-                                               delta_rot, fmerit, imlib,
-                                               interpolation, collapse,
-                                               algo_options, weights, transmission,
-                                               mu_sigma, sigma, force_rPA]),
-                                        pool=pool)
+                                              fwhm, annulus_width, ncomp,
+                                              aperture_radius, initial_state,
+                                              cube_ref, svd_mode, scaling, algo,
+                                              delta_rot, fmerit, imlib,
+                                              interpolation, collapse,
+                                              algo_options, weights, transmission,
+                                              mu_sigma, sigma, force_rPA]))
 
     if verbosity > 0:
         print('emcee Ensemble sampler successful')

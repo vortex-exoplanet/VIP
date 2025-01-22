@@ -19,10 +19,8 @@ import numpy as np
 
 
 def dist(yc, xc, y1, x1):
-    """
-    Return the Euclidean distance between two points, or between an array
-    of positions and a point.
-    """
+    """Return the Euclidean distance between two points, or between an array \
+    of positions and a point."""
     return np.hypot(yc - y1, xc - x1)
 
 
@@ -62,9 +60,9 @@ def dist_matrix(n, cx=None, cy=None):
 
 def frame_center(array, verbose=False):
     """
-    Return the coordinates y,x of the frame(s) center.
-    If odd: dim/2-0.5
-    If even: dim/2
+    Return the coordinates y,x of the frame(s) center.\
+    If odd: dim/2-0.5\
+    If even: dim/2.
 
     Parameters
     ----------
@@ -102,10 +100,9 @@ def frame_center(array, verbose=False):
     return int(cy), int(cx)
 
 
-def cart_to_pol(x, y, cx=0, cy=0, astro_convention=False):
-    """
-    Returns polar coordinates for input cartesian coordinates
-
+def cart_to_pol(x, y, x_err=0, y_err=0, cx=0, cy=0, astro_convention=False):
+    """Return polar coordinates for input cartesian coordinates, with error\
+    propagation.
 
     Parameters
     ----------
@@ -113,6 +110,10 @@ def cart_to_pol(x, y, cx=0, cy=0, astro_convention=False):
         x coordinates with respect to the center
     y : float or numpy ndarray
         y coordinates with respect to the center
+    x_err : float, optional
+        Error on x coordinate. Default is 0
+    y_err : float, optional
+        Error on y coordinate. Default is 0
     cx, cy : float or numpy ndarray
         x, y coordinates of the center of the image to be considered for
         conversion to cartesian coordinates.
@@ -124,20 +125,36 @@ def cart_to_pol(x, y, cx=0, cy=0, astro_convention=False):
     -------
     r, theta: floats or numpy ndarrays
         radii and polar angles corresponding to the input x and y.
-    """
+    dr, dtheta: floats or numpy arrays
+        [if x_err != 0 or y_err != 0] dr, dtheta uncertainties on radius and
+        azimuth from input uncertainties on x and y, if provided.
 
+    """
     r = dist(cy, cx, y, x)
     theta = np.rad2deg(np.arctan2(y-cy, x-cx))
     if astro_convention:
         theta -= 90
 
-    return r, theta
+    dx = (x-cx)
+    dy = (y-cy)
+
+    r1 = dx*x_err/np.sqrt(dx**2+dy**2)
+    r2 = dy*y_err/np.sqrt(dx**2+dy**2)
+    t1 = (1/(1+(dy/dx)**2)) * (1/dx) * y_err
+    t2 = (1/(1+(dy/dx)**2)) * (-1) * (dy/dx**2) * x_err
+
+    r_err = np.sqrt(r1**2 + r2**2)
+    theta_err = np.rad2deg(np.sqrt(t1**2 + t2**2))
+
+    if x_err != 0 or y_err != 0:
+        return r, theta, r_err, theta_err
+    else:
+        return r, theta
 
 
 def pol_to_cart(r, theta, r_err=0, theta_err=0, cx=0, cy=0,
                 astro_convention=False):
-    """
-    Returns cartesian coordinates for input polar coordinates, with error
+    """Return cartesian coordinates for input polar coordinates, with error\
     propagation.
 
     Parameters
@@ -161,10 +178,10 @@ def pol_to_cart(r, theta, r_err=0, theta_err=0, cx=0, cy=0,
     x, y: floats or numpy ndarrays
         x, y positions corresponding to input radii and position angles.
     dx, dy: floats or numpy arrays
-        dx, dy uncertainties on positions propagated from input uncertainties
-        on r and theta.
-    """
+        [if r_err != 0 or theta_err != 0] dx, dy uncertainties on positions
+        propagated from input uncertainties on r and theta, if provided.
 
+    """
     if astro_convention:
         theta += 90
         sign = -1
@@ -193,7 +210,7 @@ def pol_to_cart(r, theta, r_err=0, theta_err=0, cx=0, cy=0,
 
 def pol_to_eq(r, t, rError=0, tError=0, astro_convention=False, plot=False):
     r"""
-    Converts a position (r,t) given in polar coordinates into :math:`\Delta` RA
+    Convert a position (r,t) given in polar coordinates into :math:`\Delta` RA
     and :math:`\Delta` DEC (equatorial coordinates), with error propagation.
     Note: regardless of the assumption on input angle t (see description for
     `astro_convention`), the output RA is counted positive towards left.
@@ -220,7 +237,6 @@ def pol_to_eq(r, t, rError=0, tError=0, astro_convention=False, plot=False):
         ((RA, RA error), (DEC, DEC error))
 
     """
-
     if not astro_convention:
         t -= 90
 
@@ -266,7 +282,7 @@ def pol_to_eq(r, t, rError=0, tError=0, astro_convention=False, plot=False):
 def QU_to_QUphi(Q, U, delta_x=0, delta_y=0, scale_r2=False,
                 north_convention=False):
     """
-    Returns Qphi and Uphi images, from input Q and U images.
+    Return Qphi and Uphi images, from input Q and U images.
 
     Parameters
     ----------
@@ -288,8 +304,8 @@ def QU_to_QUphi(Q, U, delta_x=0, delta_y=0, scale_r2=False,
     -------
     Qphi, Uphi: numpy ndarrays
         Qphi and Uphi images
-    """
 
+    """
     cy, cx = frame_center(Q)
     Qphi = np.zeros_like(Q)
     Uphi = np.zeros_like(U)

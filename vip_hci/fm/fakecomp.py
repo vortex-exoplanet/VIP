@@ -84,9 +84,10 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
     radial_gradient: bool, optional
         Whether to apply a radial gradient to the psf image at the moment of
         injection. By default False, i.e. the flux of the psf image is scaled
-        only considering the value of tramnsmission at the exact radius the
-        companion is injected. Setting it to False may better represent the
-        transmission at the very edge of a physical mask though.
+        only considering the value of transmission at the exact radius the
+        companion is injected (e.g. this is the case for the vortex
+        coronagraph). Setting it to True may better represent the transmission
+        at the very edge of a physical mask though (e.g. ALC).
     full_output : bool, optional
         Returns the ``x`` and ``y`` coordinates of the injections, additionally
         to the new array.
@@ -814,7 +815,8 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
 
 
 def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
-                     interpolation='lanczos4', transmission=None):
+                     interpolation='lanczos4', transmission=None,
+                     radial_gradient=False):
     """Return a cube in which we have injected negative fake companion at the\
     position/flux given by planet_parameter.
 
@@ -843,6 +845,13 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
         radial separation in pixels, while the other column(s) are the
         corresponding off-axis transmission (between 0 and 1), for either all,
         or each spectral channel (only relevant for a 4D input cube).
+    radial_gradient: bool, optional
+        Whether to apply a radial gradient to the psf image at the moment of
+        injection. By default False, i.e. the flux of the psf image is scaled
+        only considering the value of transmission at the exact radius the
+        companion is injected (e.g. this is the case for the vortex
+        coronagraph). Setting it to True may better represent the transmission
+        at the very edge of a physical mask though (e.g. ALC).
 
     Returns
     -------
@@ -883,7 +892,8 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
                                                 imlib=imlib,
                                                 interpolation=interpolation,
                                                 verbose=False,
-                                                transmission=transmission)
+                                                transmission=transmission,
+                                                radial_gradient=radial_gradient)
         else:
             cpf = cube_inject_companions(cube_temp, psfn, angs, n_branches=1,
                                          flevel=-planet_parameter[i, 2],
@@ -891,5 +901,6 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
                                          theta=planet_parameter[i, 1],
                                          imlib=imlib, verbose=False,
                                          interpolation=interpolation,
-                                         transmission=transmission)
+                                         transmission=transmission,
+                                         radial_gradient=radial_gradient)
     return cpf

@@ -50,7 +50,7 @@ __all__ = ['mcmc_negfc_sampling',
 import numpy as np
 import os
 import emcee
-from multiprocessing import cpu_count
+from multiprocessing import cpu_count, Pool
 import inspect
 import datetime
 import corner
@@ -914,16 +914,17 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     os.environ["NUMEXPR_NUM_THREADS"] = "1"
     os.environ["OMP_NUM_THREADS"] = "1"
 
-    sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob, a=a,
-                                    args=([bounds, cube, angs, psfn,
-                                           fwhm, annulus_width, ncomp,
-                                           aperture_radius, initial_state,
-                                           cube_ref, svd_mode, scaling, algo,
-                                           delta_rot, fmerit, imlib,
-                                           interpolation, collapse,
-                                           algo_options, weights, transmission,
-                                           mu_sigma, sigma, force_rPA]),
-                                    threads=nproc)
+    with Pool() as pool:
+        sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob, a=a,
+                                        args=([bounds, cube, angs, psfn,
+                                               fwhm, annulus_width, ncomp,
+                                               aperture_radius, initial_state,
+                                               cube_ref, svd_mode, scaling, algo,
+                                               delta_rot, fmerit, imlib,
+                                               interpolation, collapse,
+                                               algo_options, weights, transmission,
+                                               mu_sigma, sigma, force_rPA]),
+                                        pool=pool)
 
     if verbosity > 0:
         print('emcee Ensemble sampler successful')

@@ -50,7 +50,7 @@ __all__ = ['mcmc_negfc_sampling',
 import numpy as np
 import os
 import emcee
-from multiprocessing import cpu_count, Pool
+from multiprocessing import cpu_count, Pool, set_start_method
 import inspect
 import datetime
 import corner
@@ -914,6 +914,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     os.environ["NUMEXPR_NUM_THREADS"] = "1"
     os.environ["OMP_NUM_THREADS"] = "1"
 
+    set_start_method("forkserver", force=True)
     with Pool() as pool:
         sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob,
                                         pool=pool, moves=emcee.moves.StretchMove(a=2),

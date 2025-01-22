@@ -979,7 +979,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
                     fname = '{d}/{f}_temp_k{k}'.format(d=output_dir,
                                                        f=output_file_tmp, k=k)
                     data = {'chain': sampler.chain,
-                            'lnprob': sampler.lnprobability,
+                            'lnprob': sampler.get_log_prob(),
                             'AR': sampler.acceptance_fraction}
                     with open(fname, 'wb') as fileSave:
                         pickle.dump(data, fileSave)
@@ -1063,7 +1063,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
         output = {'chain': chain_zero_truncated(chain),
                   'input_parameters': input_parameters,
                   'AR': sampler.acceptance_fraction,
-                  'lnprobability': sampler.lnprobability}
+                  'lnprobability': sampler.get_log_prob()}
 
         if output_file is None:
             output_file = 'MCMC_results'

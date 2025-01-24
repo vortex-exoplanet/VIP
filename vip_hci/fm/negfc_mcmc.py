@@ -918,7 +918,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     if "forkserver" in avail_methods:
         multiprocessing.set_start_method("forkserver", force=True)  # faster, better
     else:
-        multiprocessing.set_start_method("spawn", force=True)  # slower, but on all platforms
+        multiprocessing.set_start_method("spawn", force=True)  # slower, but available on all platforms
 
     with multiprocessing.Pool() as pool:
         sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob,

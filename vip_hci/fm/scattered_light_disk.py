@@ -36,7 +36,7 @@ class ScatteredLightDisk(object):
                                'a': 40, 'e': 0, 'ksi0': 1., 'gamma': 2.,
                                'beta': 1., 'dens_at_r0': 1.},
                  spf_dico={'name': 'HG', 'g': 0., 'polar': False}, xdo=0.,
-                 ydo=0.):
+                 ydo=0.,xs=None,ys=None):
         """
         Constructor of the Scattered_light_disk object, taking in input the
         geometric parameters of the disk, the radial density distribution
@@ -44,7 +44,7 @@ class ScatteredLightDisk(object):
         So far, only one radial distribution is implemented: a smoothed
         2-power-law distribution, but more complex radial profiles can be
         implemented on demand.
-        The star is assumed to be centered at the frame center as defined in
+        By default, the star is assumed to be centered at the frame center as defined in
         the vip_hci.var.frame_center function (geometric center of the image,
         e.g. either in the middle of the central pixel for odd-size images or
         in between 4 pixel for even-size images).
@@ -107,6 +107,18 @@ class ScatteredLightDisk(object):
         ydo : float
             disk offset along the y-axis in the disk frame (=semi-minor axis),
             in a.u. (default 0)
+        xs : float
+            star x position in pixel. By default, the star is assumed to be 
+            centered at the frame center as defined in
+            the vip_hci.var.frame_center function (geometric center of the image,
+            e.g. either in the middle of the central pixel for odd-size images or
+            in between 4 pixel for even-size images).
+        ys : float
+            star y position in pixel. By default, the star is assumed to be 
+            centered at the frame center as defined in
+            the vip_hci.var.frame_center function (geometric center of the image,
+            e.g. either in the middle of the central pixel for odd-size images or
+            in between 4 pixel for even-size images).
         """
         self.nx = nx    # number of pixels along the x axis of the image
         self.ny = ny    # number of pixels along the y axis of the image
@@ -123,7 +135,11 @@ class ScatteredLightDisk(object):
         self.rmin = np.sqrt(self.xdo**2+self.ydo**2)+self.pxInAU
         self.dust_density = Dust_distribution(density_dico)
         # star center along the y- and x-axis, in pixels
-        self.yc, self.xc = frame_center(np.ndarray((self.ny, self.nx)))
+        if xs is None or ys is None:
+            self.yc, self.xc = frame_center(np.ndarray((self.ny, self.nx)))
+        else:
+            self.yc = ys
+            self.xc = xs
         self.x_vector = (np.arange(0, nx) - self.xc)*self.pxInAU  # x axis in au
         self.y_vector = (np.arange(0, ny) - self.yc)*self.pxInAU  # y axis in au
         self.x_map_0PA, self.y_map_0PA = np.meshgrid(self.x_vector,
@@ -356,6 +372,40 @@ class ScatteredLightDisk(object):
                                          np.nanmax(self.scattered_light_map))
         return self.scattered_light_map
 
+    def get_scattering_angle(self):
+        """
+        Function that computes an image with the scattering angle of the dust 
+        located in the disk midplane at each point in the image 
+
+        Returns
+        -------
+        numpy.ndarray
+            image if size nx , ny.
+
+        """
+        # dist along the line of sight to reach the disk midplane (z_D=0), AU:
+        lz0_map = self.y_map * np.tan(np.deg2rad(self.itilt))
+
+        # 1d array pre-calculated values, AU
+        ycs_vector = self.cosi*self.y_map
+        # 1d array pre-calculated values, AU
+        zsn_vector = -self.sini*self.y_map
+        xd_vector = self.x_map  # x_disk, in AU
+        # rotation about x axis
+        yd_vector = ycs_vector + self.sini * lz0_map  # y_Disk in AU
+        zd_vector = zsn_vector + self.cosi * lz0_map  # z_Disk, in AU
+        # Dist and polar angles in the frame centered on the star position:
+        # squared distance to the star, in AU^2
+        d2star_vector = xd_vector**2+yd_vector**2+zd_vector**2
+        dstar_vector = np.sqrt(d2star_vector)  # distance to the star, in AU
+        # midplane distance to the star (r coordinate), in AU
+        rstar_vector = np.sqrt(xd_vector**2+yd_vector**2)
+        thetastar_vector = np.arctan2(yd_vector, xd_vector)
+        # Phase angles:
+        cosphi_vector = (rstar_vector*self.sini*np.sin(thetastar_vector) +
+                         zd_vector*self.cosi)/dstar_vector  # in radians
+        return np.rad2deg(np.arccos(cosphi_vector))
+        
 
 class Dust_distribution(object):
     """This class represents the dust distribution

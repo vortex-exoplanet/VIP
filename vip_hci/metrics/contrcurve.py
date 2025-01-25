@@ -59,7 +59,7 @@ def contrast_curve(
     algo_class=None,
     **algo_dict,
 ):
-    """Computes the contrast curve at a given confidence (``sigma``) level for\
+    """Compute the contrast curve at a given confidence (``sigma``) level for\
     an ADI cube or ADI+IFS cube. The contrast is calculated as\
     sigma*noise/throughput. This implementation takes into account the small\
     sample statistics correction proposed in [MAW14]_.
@@ -288,7 +288,7 @@ def contrast_curve(
             transmission = ntransmission.copy()
 
     if interp_order is not None or noise_sep is not None:
-        # noise measured in the empty frame with nosie_sep sampling
+        # noise measured in the empty frame with noise_sep sampling
         if noise_sep is None:
             rad_samp = vector_radd
             noise_samp = res_throug[1]
@@ -308,9 +308,13 @@ def contrast_curve(
         res_lev_samp = res_lev_samp[cutin1:]
         rad_samp = rad_samp[cutin1:]
         # define max radius, ensuring it is > fwhm/2 from the outer image edge
-        radmax_fwhm = ((cube.shape[-1]-1)//2)-fwhm_med/2
+        radmax_fwhm = int(((cube.shape[-1]-1)//2)-fwhm_med/2)
         radmax = min(vector_radd.astype(int).max(), radmax_fwhm)
-        cutin2 = np.where(rad_samp.astype(int) == radmax)[0][0]
+        radtmp = radmax
+        if len(np.where(rad_samp.astype(int) == radmax)[0]) == 0:
+            while len(np.where(rad_samp.astype(int) == radtmp)[0]) == 0:
+                radtmp -= 1
+        cutin2 = np.where(rad_samp.astype(int) == radtmp)[0][0]
         noise_samp = noise_samp[: cutin2 + 1]
         res_lev_samp = res_lev_samp[: cutin2 + 1]
         rad_samp = rad_samp[: cutin2 + 1]
@@ -703,12 +707,12 @@ def throughput(
                 raise TypeError(msg)
             if psf_template.ndim != 3:
                 raise TypeError("Template PSF is not a frame, 3d array")
-            if "scale_list" not in algo_dict:
-                raise ValueError("Vector of wavelength not found")
-            else:
+            if "scale_list" in algo_dict:
+            #     raise ValueError("Vector of wavelength not found")
+            # else:
                 if algo_dict["scale_list"].shape[0] != array.shape[0]:
                     raise TypeError("Input wavelength vector has wrong length")
-                if isinstance(fwhm, float) or isinstance(fwhm, int):
+                if np.isscalar(fwhm):
                     maxfcsep = int((array.shape[2] / 2.0) / fwhm) - 1
                 else:
                     maxfcsep = int((array.shape[2] / 2.0) / np.amin(fwhm)) - 1
@@ -1089,10 +1093,8 @@ def throughput(
         return thruput_arr, vector_radd
 
 
-def noise_per_annulus(
-    array, separation, fwhm, init_rad=None, wedge=(0, 360), verbose=False,
-    debug=False
-):
+def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0, 360),
+                      verbose=False, debug=False):
     """Measure the noise and mean residual level as the standard deviation\
     and mean, respectively, of apertures defined in each annulus with a given\
     separation.
@@ -1251,7 +1253,7 @@ def aperture_flux(array, yc, xc, fwhm, ap_factor=1, mean=False, verbose=False):
             aper = CircularAperture((x, y), (ap_factor * fwhm) / 2)
             obj_flux = aperture_photometry(array, aper, method="exact")
             obj_flux = np.array(obj_flux["aperture_sum"])
-        flux[i] = obj_flux
+        flux[i] = float(obj_flux[0])
 
         if verbose:
             print("Coordinates of object {} : ({},{})".format(i, y, x))

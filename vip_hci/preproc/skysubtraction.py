@@ -58,6 +58,7 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, masks, ref_cube=None, ncomp=2,
         Whether to also output pcs, reconstructed cube, residuals cube and
         derotated residual cube.
 
+
     Notes
     -----
     Masks can be created with the function
@@ -77,6 +78,7 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, masks, ref_cube=None, ncomp=2,
          - boat principal components,
          - anchor principal components, and
          - reconstructed cube.
+
 
     Usage Example
     -------------
@@ -180,13 +182,13 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, masks, ref_cube=None, ncomp=2,
     # -- Generate Kl and Dikl transform
 
     sky_pc_anchor = np.dot(sky_pcs_kl, sky_anchor)
-    sky_pcs_anchor_cube = sky_pc_anchor.reshape(sky_cube.shape[0],
-                                                sky_cube.shape[1],
-                                                sky_cube.shape[2])
+    sky_anchor_cube = sky_pc_anchor.reshape(sky_cube.shape[0],
+                                            sky_cube.shape[1],
+                                            sky_cube.shape[2])
 
-    sky_pcs_boat_cube = np.dot(sky_pcs_kl, sky_boat).reshape(sky_cube.shape[0],
-                                                             sky_cube.shape[1],
-                                                             sky_cube.shape[2])
+    sky_boat_cube = np.dot(sky_pcs_kl, sky_boat).reshape(sky_cube.shape[0],
+                                                         sky_cube.shape[1],
+                                                         sky_cube.shape[2])
 
     # -- Generate Kl projection to get coeff
 
@@ -194,7 +196,7 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, masks, ref_cube=None, ncomp=2,
     for i in range(Msci_masked_anchor.shape[0]):
         transf_sci[:, i] = np.inner(sky_pc_anchor, Msci_masked_anchor[i].T)
 
-    Msky_pcs_anchor = prepare_matrix(sky_pcs_anchor_cube, scaling=None,
+    Msky_pcs_anchor = prepare_matrix(sky_anchor_cube, scaling=None,
                                      verbose=False)
 
     mat_inv = np.linalg.inv(np.dot(Msky_pcs_anchor, Msky_pcs_anchor.T))
@@ -205,9 +207,8 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, masks, ref_cube=None, ncomp=2,
     sci_cube_skysub = np.zeros_like(sci_cube)
     sky_opt = sci_cube.copy()
     for i in range(Msci_masked.shape[0]):
-        tmp_sky = [np.sum(transf_sci_scaled[j, i]*sky_pcs_boat_cube[j]
-                          for j in range(ncomp))]
-        sky_opt[i] = np.array(tmp_sky)
+        sky_opt[i] = np.sum([transf_sci_scaled[j, i]*sky_boat_cube[j]
+                             for j in range(ncomp)], axis=0)
         sci_cube_skysub[i] = sci_cube_boat[i] - sky_opt[i]
 
     # -- Processing the reference cube (if any)
@@ -240,19 +241,19 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, masks, ref_cube=None, ncomp=2,
 
         ref_cube_skysub = np.zeros_like(ref_cube)
         for i in range(Mref_masked.shape[0]):
-            tmp_sky = [np.sum(transf_ref_scaled[j, i]*sky_pcs_boat_cube[j]
+            tmp_sky = [np.sum(transf_ref_scaled[j, i]*sky_boat_cube[j]
                               for j in range(ncomp))]
             sky_opt = np.array(tmp_sky)
             ref_cube_skysub[i] = ref_cube_boat[i] - sky_opt
 
         if full_output:
-            return (sci_cube_skysub, ref_cube_skysub, sky_pcs_anchor_cube,
-                    sky_pcs_boat_cube, sky_opt)
+            return (sci_cube_skysub, ref_cube_skysub, sky_anchor_cube,
+                    sky_boat_cube, sky_opt)
         else:
             return sci_cube_skysub, ref_cube_skysub
     else:
         if full_output:
-            return (sci_cube_skysub, sky_pcs_anchor_cube, sky_pcs_boat_cube,
+            return (sci_cube_skysub, sky_anchor_cube, sky_boat_cube,
                     sky_opt)
         else:
             return sci_cube_skysub

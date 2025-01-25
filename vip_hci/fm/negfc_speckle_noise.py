@@ -12,10 +12,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from ..config.utils_conf import pool_map, iterable  # eval_func_tuple
-from ..fm import cube_inject_companions
+from ..fm import cube_inject_companions, cube_planet_free
 from .negfc_simplex import firstguess_simplex
 from .negfc_fmerit import get_mu_and_sigma
-from .utils_negfc import cube_planet_free
 from .negfc_mcmc import confidence
 
 
@@ -61,7 +60,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         of spectral channels (flux at each wavelength).
     angle_range: 1d numpy array
         Range of angles (counted from x=0 axis, counter-clockwise) at which the
-        fake companions will be injected, in [0,360[.
+        fake companions will be injected, in [0,360].
     derot_angles: 1d numpy array
         Derotation angles for ADI. Length should match input cube.
     algo: python routine
@@ -97,10 +96,19 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         If set to None: not used, and falls back to original version of the
         algorithm, using fmerit.
         If a tuple of 2 elements: should be the mean and standard deviation of
-        pixel intensities in an annulus centered on the lcoation of the
+        pixel intensities in an annulus centered on the location of the
         companion candidate, excluding the area directly adjacent to the CC.
         If set to anything else, but None/False/tuple: will compute said mean
         and standard deviation automatically.
+    wedge: tuple, opt
+        [Only used if mu_sigma is not None] Input for the
+        ``vip_hci.fm.get_mu_and_sigma`` function. Range in theta where the mean
+        and standard deviation are computed in an annulus defined in the PCA
+        image. If None, it will be calculated automatically based on initial
+        guess and derotation angles to avoid. If some disc signal is present
+        elsewhere in the annulus, it is recommended to provide wedge manually.
+        The provided range should be continuous and >0. E.g. provide (270, 370)
+        to consider a PA range between [-90,+10].
     force_rPA: bool, optional
         Whether to only search for optimal flux, provided (r,PA).
     ndet: int or None, optional
@@ -149,7 +157,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     save: bool, optional
         If True, the result are pickled.
     verbose: bool, optional
-        If True, informations are displayed in the shell.
+        If True, information is displayed in the shell.
     plot: bool, optional
         Whether to plot the gaussian fit to the distributions of parameter
         deviations (between retrieved and injected).
@@ -207,7 +215,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
                                   angle_range[-1]+delta_theta/2, n_ap,
                                   endpoint=False)
 
-    elif angle_range[0] % 360 == angle_range[-1] % 360:
+    if angle_range[0] % 360 == angle_range[-1] % 360:
         angle_range = angle_range[:-1]
 
     if verbose:
@@ -245,8 +253,8 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
             norm_weights = weights
         mu_sigma = get_mu_and_sigma(cube, derot_angles, ncomp, annulus_width,
                                     aperture_radius, fwhm, r_true, theta_true,
-                                    cube_ref=cube_ref, wedge=wedge, algo=algo,
-                                    weights=norm_weights,
+                                    f_true, psfn, cube_ref=cube_ref, wedge=wedge,
+                                    algo=algo, weights=norm_weights,
                                     algo_options=algo_options)
 
     res = pool_map(nproc, _estimate_speckle_one_angle, iterable(angle_range),
@@ -317,7 +325,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         offset = np.array(trim_offset)
 
     if bins is None:
-        bins = int(offset.shape[0]/10)
+        bins = int(offset.shape[0]/6)
 
     if force_rPA:
         labels = []
@@ -358,9 +366,6 @@ def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true,
                                      imlib=imlib, interpolation=interpolation,
                                      verbose=False)
 
-    ncomp = algo_options.get('ncomp', 1)
-    annulus_width = algo_options.get('annulus_width', int(fwhm))
-
     if cube_pf.ndim == 4:
         p_ini = [r_true, angle]
         for f in f_true:
@@ -369,10 +374,14 @@ def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true,
     else:
         p_ini = (r_true, angle, f_true)
 
+    ncomp = algo_options.get('ncomp', 1)
+    annulus_width = algo_options.get('annulus_width', int(fwhm))
+    delta_rot = algo_options.get('delta_rot', 1)
+
     res_simplex = firstguess_simplex(p_ini, cube_fc, angs,
                                      psfn, ncomp, fwhm, annulus_width,
                                      aperture_radius, cube_ref=cube_ref,
-                                     fmerit=fmerit, algo=algo,
+                                     fmerit=fmerit, algo=algo, delta_rot=delta_rot,
                                      algo_options=algo_options, imlib=imlib,
                                      interpolation=interpolation,
                                      transmission=transmission,

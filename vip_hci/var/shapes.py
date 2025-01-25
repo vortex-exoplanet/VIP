@@ -55,10 +55,10 @@ def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None,
         ``fillwith``. When set to 'out' the pixels outside the circular mask
         are set to ``fillwith``.
     cy, cx : floats, opt
-        XY coordinates of thenter of the mask. By default, it considers the
+        XY coordinates of the center of the mask. By default, it considers the
         center of the image.
     output : {'masked_arr', 'bool_mask'}, optional
-        Whether to return the masked frame or a bolean mask
+        Whether to return the masked frame or a boolean mask
 
     Returns
     -------
@@ -73,6 +73,18 @@ def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None,
         cy, cx = frame_center(array)
 
     shape = (array.shape[-2], array.shape[-1])
+
+    # avoid runtime warning
+    if radius == 0:
+        if mode == 'in':
+            mask = np.ones(shape, dtype=bool)
+        else:
+            mask = np.zeros(shape, dtype=bool)
+        if output == "bool_mask":
+            return mask
+        else:
+            return mask[0, 0]*array
+
     ind = disk((cy, cx), radius, shape=shape)
 
     if output == "bool_mask":
@@ -98,8 +110,7 @@ def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None,
                 array_masked[:, ind[1], ind[0]] = array[:, ind[1], ind[0]]
             elif array.ndim == 4:
                 array_masked[:, :, ind[1], ind[0]] = array[:, :, ind[1], ind[0]]
-
-    return array_masked
+        return array_masked
 
 
 def mask_ellipse(array, a, b, theta, fillwith=0, mode='in', cy=None, cx=None,
@@ -127,10 +138,10 @@ def mask_ellipse(array, a, b, theta, fillwith=0, mode='in', cy=None, cx=None,
         ``fillwith``. When set to 'out' the pixels outside the circular mask
         are set to ``fillwith``.
     cy, cx : floats, opt
-        XY coordinates of thenter of the mask. By default, it considers the
+        XY coordinates of the center of the mask. By default, it considers the
         center of the image.
     output : {'masked_arr', 'bool_mask'}, optional
-        Whether to return the masked frame or a bolean mask
+        Whether to return the masked frame or a boolean mask
 
     Returns
     -------

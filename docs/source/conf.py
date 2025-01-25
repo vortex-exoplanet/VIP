@@ -36,15 +36,24 @@ with open(os.path.join(os.path.abspath('../../vip_hci/'), '__init__.py')) as ini
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'myst_nb',  # replaces nbsphinx
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
-    'myst_nb' # replaces nbsphinx
-    #'nbsphinx'
+    'sphinx.ext.autosectionlabel',
+    # 'myst_parser',
+    #'nbsphinx',
     # 'sphinx.ext.githubpages',
+    'jupyter_sphinx',
 ]
+
+myst_enable_extensions = ["amsmath",
+                          "dollarmath"
+                          ]
+
+suppress_warnings = ["mystnb.unknown_mime_type"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = []#['./_templates']
@@ -54,6 +63,11 @@ templates_path = []#['./_templates']
 #
 # source_suffix = ['.rst', '.md']
 source_suffix = '.rst'
+# source_suffix = {
+#     '.rst': 'restructuredtext',
+#     '.txt': 'restructuredtext',
+#     '.md': 'markdown',
+# }
 
 # The encoding of source files.
 #
@@ -131,6 +145,8 @@ suppress_warnings = ['image.nonlocal_uri']
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
 
+# automatically label sections of the notebooks, for cross-referencing
+autosectionlabel_prefix_document = True
 
 # -- Options for HTML output ----------------------------------------------
 

@@ -13,7 +13,7 @@ fashion) model PSF subtraction for ADI, ADI+SDI (IFS) and ADI+RDI datasets.
 
 """
 
-__author__ = "Carlos Alberto Gomez Gonzalez, Valentin Christiaens, Thomas Bédrine"
+__author__ = "C. A. Gomez Gonzalez, V. Christiaens, T. Bédrine"
 __all__ = ["pca_annular", "PCA_ANNULAR_Params"]
 
 import numpy as np
@@ -38,11 +38,7 @@ AUTO = "auto"
 
 @dataclass
 class PCA_ANNULAR_Params:
-    """
-    Set of parameters for the annular PCA module.
-
-
-    """
+    """Set of parameters for the annular PCA module."""
 
     cube: np.ndarray = None
     angle_list: np.ndarray = None
@@ -52,8 +48,8 @@ class PCA_ANNULAR_Params:
     fwhm: float = 4
     asize: float = 4
     n_segments: Union[int, List[int], AUTO] = 1
-    delta_rot: Union[float, Tuple[float]] = (0.1, 1)
-    delta_sep: Union[float, Tuple[float]] = (0.1, 1)
+    delta_rot: Union[float, Tuple[float], List[float]] = (0.1, 1)
+    delta_sep: Union[float, Tuple[float], List[float]] = (0.1, 1)
     ncomp: Union[int, Tuple, np.ndarray, AUTO] = 1
     svd_mode: Enum = SvdMode.LAPACK
     nproc: int = 1
@@ -98,7 +94,7 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
         parameters below.
     all_kwargs: dictionary, optional
         Mix of keyword arguments that can initialize a PCA_ANNULAR_Params and
-        the optional 'rot_options' dictionnary, with keyword values for
+        the optional 'rot_options' dictionary, with keyword values for
         "border_mode", "mask_val", "edge_blend", "interp_zeros", "ker" (see
         documentation of ``vip_hci.preproc.frame_rotate``). Can also contain a
         PCA_ANNULAR_Params named as `algo_params`.
@@ -129,17 +125,22 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
         The number of segments for each annulus. When a single integer is given
         it is used for all annuli. When set to 'auto', the number of segments is
         automatically determined for every annulus, based on the annulus width.
-    delta_rot : float or tuple of floats, optional
-        Factor for adjusting the parallactic angle threshold, expressed in
-        FWHM. Default is 1 (excludes 1 FWHM on each side of the considered
-        frame). If a tuple of two floats is provided, they are used as the lower
-        and upper intervals for the threshold (grows linearly as a function of
-        the separation).
-    delta_sep : float or tuple of floats, optional
-        The threshold separation in terms of the mean FWHM (for ADI+mSDI data).
-        If a tuple of two values is provided, they are used as the lower and
-        upper intervals for the threshold (grows as a function of the
-        separation).
+    delta_rot : float, tuple of floats or list of floats, optional
+        Parallactic angle threshold, expressed in FWHM, used to build the PCA
+        library. If a tuple of 2 floats is provided, they are used as the lower
+        and upper bounds of a linearly increasing threshold as a function of
+        separation. If a list is provided, it will correspond to the threshold
+        to be adopted for each annulus (length should match number of annuli).
+        Default is (0.1, 1), which excludes 0.1 FWHM for the innermost annulus
+        up to 1 FWHM for the outermost annulus.
+    delta_sep : float, tuple of floats or list of floats, optional
+        The radial threshold in terms of the mean FWHM, used to build the PCA
+        library (for ADI+mSDI data). If a tuple of 2 floats is provided, they
+        are used as the lower and upper bounds of a linearly increasing
+        threshold as a function of separation. If a list is provided, it will
+        correspond to the threshold to be adopted for each annulus (length
+        should match number of annuli). Default is (0.1, 1), which excludes 0.1
+        FWHM for the innermost annulus up to 1 FWHM for the outermost annulus.
     ncomp : 'auto', int, tuple/1d numpy array of int, list, tuple of lists, opt
         How many PCs are used as a lower-dimensional subspace to project the
         target (sectors of) frames. Depends on the dimensionality of `cube`.
@@ -223,9 +224,9 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
     frame : numpy ndarray, 2d
         [full_output=True] Median combination of the de-rotated cube.
     """
-    # Separating the parameters of the ParamsObject from the optionnal rot_options
-    class_params, rot_options = separate_kwargs_dict(initial_kwargs=all_kwargs,
-                                                     parent_class=PCA_ANNULAR_Params
+    # Separate parameters of the ParamsObject from the optionnal rot_options
+    class_params, rot_options = separate_kwargs_dict(all_kwargs,
+                                                     PCA_ANNULAR_Params
                                                      )
 
     # Extracting the object of parameters (if any)
@@ -244,7 +245,8 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
         rot_options['interp_zeros'] = True
 
     global start_time
-    start_time = time_ini()
+    if algo_params.verbose:
+        start_time = time_ini()
 
     if algo_params.left_eigv:
         if (
@@ -259,7 +261,10 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
 
     # ADI or ADI+RDI data
     if algo_params.cube.ndim == 3:
-        add_params = {"start_time": start_time, "full_output": True}
+        if algo_params.verbose:
+            add_params = {"start_time": start_time, "full_output": True}
+        else:
+            add_params = {"full_output": True}
 
         func_params = setup_parameters(
             params_obj=algo_params, fkt=_pca_adi_rdi, **add_params
@@ -311,7 +316,10 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
             cube_der.append(res_pca[1])
             ifs_adi_frames[ch] = res_pca[-1]
 
-        frame = cube_collapse(ifs_adi_frames, mode=algo_params.collapse_ifs)
+        if algo_params.collapse_ifs is not None:
+            frame = cube_collapse(ifs_adi_frames, mode=algo_params.collapse_ifs)
+        else:
+            frame = ifs_adi_frames
 
         # convert to numpy arrays
         cube_out = np.array(cube_out)
@@ -471,8 +479,13 @@ def _pca_sdi_fr(
 
     if isinstance(delta_sep, tuple):
         delta_sep_vec = np.linspace(delta_sep[0], delta_sep[1], n_annuli)
-    else:
+    elif np.isscalar(delta_sep):
         delta_sep_vec = [delta_sep] * n_annuli
+    else:
+        if len(delta_sep) != n_annuli:
+            msg = "If delta_sep is a list it should have n_annuli elements."
+            raise TypeError(msg)
+        delta_sep_vec = delta_sep
 
     for ann in range(n_annuli):
         if ann == n_annuli - 1:
@@ -575,6 +588,10 @@ def _pca_adi_rdi(
         delta_rot = np.linspace(delta_rot[0], delta_rot[1], num=n_annuli)
     elif np.isscalar(delta_rot):
         delta_rot = [delta_rot] * n_annuli
+    else:
+        if len(delta_rot) != n_annuli:
+            msg = "If delta_rot is a list it should have n_annuli elements."
+            raise TypeError(msg)
 
     if isinstance(n_segments, int):
         n_segments = [n_segments for _ in range(n_annuli)]
@@ -603,6 +620,12 @@ def _pca_adi_rdi(
         nncomp = len(ncomp)
         cube_out = np.zeros([nncomp, array.shape[0], array.shape[1],
                              array.shape[2]])
+    if verbose:
+        #  verbosity set to 2 only for ADI
+        verbose_ann = int(verbose) + int(cube_ref is None)
+    else:
+        verbose_ann = verbose
+
     for ann in range(n_annuli):
         if isinstance(ncomp, tuple) or isinstance(ncomp, np.ndarray):
             if len(ncomp) == n_annuli:
@@ -624,7 +647,7 @@ def _pca_adi_rdi(
             asize,
             delta_rot[ann],
             n_segments_ann,
-            verbose,
+            verbose_ann,
             True,
         )
         pa_thr, inner_radius, ann_center = res_ann_par

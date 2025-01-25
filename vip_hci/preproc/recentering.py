@@ -1374,12 +1374,14 @@ def cube_recenter_dft_upsampling(array, upsample_factor=100, subi_size=None,
 
 def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
                imlib, border_mode):
-    """Align images using a DFT-based cross-correlation algorithm, used in
-    cube_recenter_dft_upsampling. See the docstring of
-    skimage.register.phase_cross_correlation for a description of the
-    ``normalization`` parameter which was added in scikit-image 0.19. This
-    should be set to None to maintain the original behaviour of _shift_dft."""
+    """Align images using a DFT-based cross-correlation algorithm, used in\
+    cube_recenter_dft_upsampling.
 
+    See the docstring of skimage.register.phase_cross_correlation for a
+    description of the ``normalization`` parameter which was added in
+    scikit-image 0.19. This should be set to None to maintain the original
+    behaviour of _shift_dft.
+    """
     if version("scikit-image") > "0.18.3":
         shifts = phase_cross_correlation(array_rec[0], array[frnum],
                                          upsample_factor=upsample_factor,
@@ -1572,7 +1574,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
                         fwhm[i], threshold, sigfactor]
 
             res.append(func(*args))
-        res = np.array(res, dtype=object)
+        #res = np.array(res, dtype=object)
     elif nproc > 1:
         if model == "2gauss":
             args = [array, iterable(range(n_frames)), subi_size, pos_y, pos_x,
@@ -1582,21 +1584,21 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
             args = [array, iterable(range(n_frames)), subi_size, pos_y, pos_x,
                     negative, debug, iterable(fwhm), threshold, sigfactor]
         res = pool_map(nproc, func, *args)
-        res = np.array(res, dtype=object)
-    y = cy - res[:, 0]
-    x = cx - res[:, 1]
+        #res = np.array(res, dtype=object)
+    y = cy - np.array([res[i][0] for i in range(len(res))])
+    x = cx - np.array([res[i][1] for i in range(len(res))])
 
     if model == "2gauss" and not fix_neg:
-        y_neg = res[:, 2]
-        x_neg = res[:, 3]
-        fwhm_x = res[:, 4]
-        fwhm_y = res[:, 5]
-        fwhm_neg_x = res[:, 6]
-        fwhm_neg_y = res[:, 7]
-        theta = res[:, 8]
-        theta_neg = res[:, 9]
-        amp_pos = res[:, 10]
-        amp_neg = res[:, 11]
+        y_neg = np.array([res[i][2] for i in range(len(res))])
+        x_neg = np.array([res[i][3] for i in range(len(res))])
+        fwhm_x = np.array([res[i][4] for i in range(len(res))])
+        fwhm_y = np.array([res[i][5] for i in range(len(res))])
+        fwhm_neg_x = np.array([res[i][6] for i in range(len(res))])
+        fwhm_neg_y = np.array([res[i][7] for i in range(len(res))])
+        theta = np.array([res[i][8] for i in range(len(res))])
+        theta_neg = np.array([res[i][9] for i in range(len(res))])
+        amp_pos = np.array([res[i][10] for i in range(len(res))])
+        amp_neg = np.array([res[i][11] for i in range(len(res))])
 
     if offset is not None:
         offx, offy = offset
@@ -2098,7 +2100,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     cum_x_shifts_sci = cum_x_shifts[1:(n + 1)]
     cube_reg_sci = cube_shift(cube_sci, cum_y_shifts_sci, cum_x_shifts_sci,
                               imlib=imlib, interpolation=interpolation,
-                              border_mode=border_mode)
+                              border_mode=border_mode, nproc=nproc)
 
     if plot:
         plt.figure(figsize=vip_figsize)
@@ -2124,7 +2126,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         cum_x_shifts_ref = cum_x_shifts[(n + 1):]
         cube_reg_ref = cube_shift(cube_ref, cum_y_shifts_ref, cum_x_shifts_ref,
                                   imlib=imlib, interpolation=interpolation,
-                                  border_mode=border_mode)
+                                  border_mode=border_mode, nproc=nproc)
 
     if ref_star:
         if full_output:

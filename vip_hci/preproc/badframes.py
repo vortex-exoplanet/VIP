@@ -9,22 +9,20 @@ __all__ = ['cube_detect_badfr_pxstats',
            'cube_detect_badfr_correlation']
 
 import numpy as np
-import pandas as pn
-from matplotlib import pyplot as plt
-try:
-    from photutils.detection import DAOStarFinder
-except:
-    from photutils import DAOStarFinder
+from pandas import Series
 from astropy.stats import sigma_clip
-from ..var import get_annulus_segments
+from matplotlib import pyplot as plt
+
 from ..config import time_ini, timing, check_array
+from .cosmetics import cube_crop_frames, frame_crop
 from ..config.utils_conf import vip_figsize
 from ..stats import cube_basic_stats, cube_distance
+from ..var import get_annulus_segments
 
 
 def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
                               top_sigma=1.0, low_sigma=1.0, window=None,
-                              plot=True, verbose=True):
+                              method='mean', plot=True, verbose=True):
     """ Returns the list of bad frames from a cube using the px statistics in
     a centered annulus or circular aperture. Frames that are more than a few
     standard deviations discrepant are rejected. Should be applied on a
@@ -49,6 +47,8 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
     window : int, optional
         Window for smoothing the mean and getting the rejection statistic. If
         None, it is defined as ``n_frames//3``.
+    method: str, {'mean', 'median'}, optional
+        Whether to consider a rolling mean or rolling median.
     plot : bool, optional
         If true it plots the mean fluctuation as a function of the frames and
         the boundaries.
@@ -67,7 +67,7 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
 
     if mode == 'annulus':
         if in_radius + width > array[0].shape[0] / 2:
-            msgve = 'Inner radius and annulus size are too big (out of boundaries)'
+            msgve = 'Inner radius and annulus size are too big'
             raise ValueError(msgve)
     elif mode == 'circle':
         if in_radius > array[0].shape[0] / 2:
@@ -79,12 +79,16 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
 
     n = array.shape[0]
 
-    mean_values = cube_basic_stats(array, mode, radius=in_radius,
-                                   inner_radius=in_radius, size=width)
+    res = cube_basic_stats(array, mode, radius=in_radius,
+                           inner_radius=in_radius, size=width, full_output=True)
+    if method == 'mean':
+        mean_values = res[0]
+    else:
+        mean_values = res[2]
 
     if window is None:
         window = n//3
-    mean_smooth = pn.Series(mean_values).rolling(window, center=True).mean()
+    mean_smooth = Series(mean_values).rolling(window, center=True).mean()
     mean_smooth = mean_smooth.bfill()  # fillna(method='backfill')
     mean_smooth = mean_smooth.ffill()  # fillna(method='ffill')
     sigma = np.std(mean_values)
@@ -137,7 +141,7 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
 
 def cube_detect_badfr_ellipticity(array, fwhm, crop_size=30, roundlo=-0.2,
                                   roundhi=0.2, plot=True, verbose=True):
-    """ Returns the list of bad frames  from a cube by measuring the PSF
+    """Return the list of bad frames from a cube by measuring the PSF\
     ellipticity of the central source. Should be applied on a recentered cube.
 
     Parameters
@@ -178,7 +182,7 @@ def cube_detect_badfr_ellipticity(array, fwhm, crop_size=30, roundlo=-0.2,
     extended in x or y will have a negative or positive roundness, respectively.
 
     """
-    from .cosmetics import cube_crop_frames
+    from photutils.detection import DAOStarFinder
 
     check_array(array, 3, msg='array')
 
@@ -297,7 +301,6 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
         [if full_output=True] 1d array with the measured distances
 
     """
-    from .cosmetics import cube_crop_frames, frame_crop
 
     check_array(array, 3, msg='array')
 

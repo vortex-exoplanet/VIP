@@ -6,7 +6,8 @@ __all__ = ['collapse_psf_cube',
            'normalize_psf',
            'cube_inject_companions',
            'generate_cube_copies_with_injections',
-           'frame_inject_companion']
+           'frame_inject_companion',
+           'cube_planet_free']
 
 from multiprocessing import cpu_count
 import numpy as np
@@ -83,9 +84,10 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
     radial_gradient: bool, optional
         Whether to apply a radial gradient to the psf image at the moment of
         injection. By default False, i.e. the flux of the psf image is scaled
-        only considering the value of tramnsmission at the exact radius the
-        companion is injected. Setting it to False may better represent the
-        transmission at the very edge of a physical mask though.
+        only considering the value of transmission at the exact radius the
+        companion is injected (e.g. this is the case for the vortex
+        coronagraph). Setting it to True may better represent the transmission
+        at the very edge of a physical mask though (e.g. ALC).
     full_output : bool, optional
         Returns the ``x`` and ``y`` coordinates of the injections, additionally
         to the new array.
@@ -793,7 +795,7 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
             restemp = psf_norm_2d(array[fr], fwhm[fr], threshold, mask_core,
                                   True, False)
             array_out.append(restemp[0])
-            fwhm_flux[fr] = restemp[1]
+            fwhm_flux[fr] = restemp[1][0]
 
         array_out = np.array(array_out)
         if verbose:
@@ -810,3 +812,95 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
         msg += " ``vip_hci.preproc.cube_collapse`` first, or loop on the "
         msg += "temporal axis."
         raise ValueError(msg.format(array.shape[0]))
+
+
+def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
+                     interpolation='lanczos4', transmission=None,
+                     radial_gradient=False):
+    """Return a cube in which we have injected negative fake companion at the\
+    position/flux given by planet_parameter.
+
+    Parameters
+    ----------
+    planet_parameter: numpy.array or list or tuple
+        The (r, theta, flux) for all known companions. For a 3D cube, this
+        parameter must have a shape (n_pl,3) or (3,) -- the latter case assumes
+        a single planet in the data. For a 4d cube r, theta and flux
+        must all be 1d arrays with length equal to cube.shape[0]; i.e.
+        planet_parameter should have shape: (n_pl,3,n_ch).
+    cube: numpy ndarray
+        The cube of fits images expressed as a numpy.array.
+    angs: numpy ndarray
+        The parallactic angle fits image expressed as a numpy.array.
+    psfn: 2d or 3d numpy ndarray
+        The normalized psf expressed as a numpy ndarray. Can be 3d for a 4d
+        (spectral+ADI) input cube.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    transmission: numpy array, optional
+        Radial transmission of the coronagraph, if any. Array with either
+        2 x n_rad, 1+n_ch x n_rad columns. The first column should contain the
+        radial separation in pixels, while the other column(s) are the
+        corresponding off-axis transmission (between 0 and 1), for either all,
+        or each spectral channel (only relevant for a 4D input cube).
+    radial_gradient: bool, optional
+        Whether to apply a radial gradient to the psf image at the moment of
+        injection. By default False, i.e. the flux of the psf image is scaled
+        only considering the value of transmission at the exact radius the
+        companion is injected (e.g. this is the case for the vortex
+        coronagraph). Setting it to True may better represent the transmission
+        at the very edge of a physical mask though (e.g. ALC).
+
+    Returns
+    -------
+    cpf : numpy.array
+        The cube with negative companions injected at the position given in
+        planet_parameter.
+
+    """
+    cpf = np.zeros_like(cube)
+
+    # unify planet_parameter format
+    planet_parameter = np.array(planet_parameter)
+    cond1 = cube.ndim == 3 and planet_parameter.ndim < 2
+    cond2 = cube.ndim == 4 and planet_parameter.ndim < 3
+    if cond1 or cond2:
+        planet_parameter = planet_parameter[np.newaxis, :]
+
+    if cube.ndim == 4:
+        if planet_parameter.shape[2] != cube.shape[0]:
+            raise TypeError("Input planet parameter with wrong dimensions.")
+
+    for i in range(planet_parameter.shape[0]):
+        if i == 0:
+            cube_temp = cube
+        else:
+            cube_temp = cpf
+
+        if cube.ndim == 4:
+            for j in range(cube.shape[0]):
+                flevel = -planet_parameter[i, 2, j]
+                r = planet_parameter[i, 0, j]
+                theta = planet_parameter[i, 1, j]
+                cpf[j] = cube_inject_companions(cube_temp[j], psfn[j], angs,
+                                                flevel=flevel,
+                                                rad_dists=[r],
+                                                n_branches=1,
+                                                theta=theta,
+                                                imlib=imlib,
+                                                interpolation=interpolation,
+                                                verbose=False,
+                                                transmission=transmission,
+                                                radial_gradient=radial_gradient)
+        else:
+            cpf = cube_inject_companions(cube_temp, psfn, angs, n_branches=1,
+                                         flevel=-planet_parameter[i, 2],
+                                         rad_dists=[planet_parameter[i, 0]],
+                                         theta=planet_parameter[i, 1],
+                                         imlib=imlib, verbose=False,
+                                         interpolation=interpolation,
+                                         transmission=transmission,
+                                         radial_gradient=radial_gradient)
+    return cpf

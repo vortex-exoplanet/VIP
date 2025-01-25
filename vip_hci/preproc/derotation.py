@@ -19,7 +19,7 @@ from ..config.utils_conf import pool_map
 from ..var import frame_center
 from ..var import frame_filter_lowpass
 from .cosmetics import frame_pad
-__author__ = 'Carlos Alberto Gomez Gonzalez, Valentin Christiaens'
+__author__ = 'C. A. Gomez Gonzalez, V. Christiaens, S. Juillard'
 __all__ = ['cube_derotate',
            'frame_rotate',
            'rotate_fft']
@@ -39,6 +39,14 @@ except ImportError:
     warnings.warn(msg, ImportWarning)
     no_opencv = True
 
+try:
+    import torch as torch
+    no_torch = False
+except ImportError:
+    msg = "Pytorch python bindings are missing"
+    warnings.warn(msg, ImportWarning)
+    no_torch = True
+
 
 def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
                  cxy=None, border_mode='constant', mask_val=np.nan,
@@ -51,7 +59,7 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
         Input image, 2d array.
     angle : float
         Rotation angle.
-    imlib : {'opencv', 'skimage', 'vip-fft'}, str optional
+    imlib : {'opencv', 'skimage', 'vip-fft', 'torch-fft'}, str optional
         Library used for image transformations. Opencv is faster than skimage or
         'vip-fft', but vip-fft slightly better preserves the flux in the image
         (followed by skimage with a biquintic interpolation). 'vip-fft'
@@ -118,7 +126,7 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
     if edge_blend is None:
         edge_blend = ''
 
-    if edge_blend != '' or imlib == 'vip-fft':
+    if edge_blend != '' or imlib in ['vip-fft', 'torch-fft']:
         # fill with nans
         cy_ori, cx_ori = frame_center(array)
         y_ori, x_ori = array.shape
@@ -139,7 +147,7 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
                                                  stdfunc=np.nanstd)
 
         # pad and interpolate, about 1.2x original size
-        if imlib == 'vip-fft':
+        if imlib in ['vip-fft', 'torch-fft']:
             fac = 1.5
         else:
             fac = 1.1
@@ -219,8 +227,9 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
         cy, cx = frame_center(array_prep)
     else:
         cx, cy = cxy
-        if imlib == 'vip-fft' and (cy, cx) != frame_center(array_prep):
-            msg = "'vip-fft'imlib does not yet allow for custom center to be "
+        cond_imlib = imlib in ['vip-fft', 'torch-fft']
+        if cond_imlib and (cy, cx) != frame_center(array_prep):
+            msg = "'vip-fft' imlib does not yet allow for custom center to be "
             msg += " provided "
             raise ValueError(msg)
 
@@ -265,7 +274,7 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
         if norm:
             array_out *= max_val
             array_out += min_val
-        array_out = np.nan_to_num(array_out)
+        array_out = np.nan_to_num(array_out, copy=False)
 
     elif imlib == 'opencv':
         if no_opencv:
@@ -282,7 +291,7 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
         elif interpolation == 'lanczos4':
             intp = cv2.INTER_LANCZOS4
         else:
-            raise ValueError('Opencv interpolation method not recognized')
+            raise ValueError(f'Opencv interpolation method `{interpolation}` is not recognized')
 
         if border_mode == 'constant':
             bormo = cv2.BORDER_CONSTANT  # iiiiii|abcdefgh|iiiiiii
@@ -300,11 +309,19 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
         M = cv2.getRotationMatrix2D((cx, cy), angle, 1)
         array_out = cv2.warpAffine(array_prep.astype(np.float32), M, (x, y),
                                    flags=intp, borderMode=bormo)
+    elif imlib == 'torch-fft':
+        if no_torch:
+            msg = 'Pytorch bindings cannot be imported. Install torch or'
+            msg += ' set imlib to skimage'
+            raise RuntimeError(msg)
+
+        array_out = (tensor_rotate_fft(torch.unsqueeze(
+            torch.from_numpy(array_prep), 0), angle)[0]).numpy()
 
     else:
         raise ValueError('Image transformation library not recognized')
 
-    if edge_blend != '' or imlib == 'vip-fft':
+    if edge_blend != '' or imlib in ['vip-fft', 'torch-fft']:
         array_out = array_out[y0:y1, x0:x1]  # remove padding
         array_out[mask_ori] = mask_val      # mask again original masked values
 
@@ -491,6 +508,7 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
                    delta_rot, n_segments, verbose, strict=False):
     """Define and return the requested annuli geometry: parallactic angle\
     threshold, inner radius and annulus center for each annulus."""
+    verbosity = int(verbose)
     if ann == n_annuli - 1:
         inner_radius = radius_int + (ann * annulus_width - 1)
     else:
@@ -503,13 +521,14 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
         msg = 'WARNING: PA threshold {:.2f} is too big, recommended '
         msg += ' value for annulus {:.0f}: {:.2f}'
         if strict:
-            print(msg.format(pa_threshold, ann, new_pa_th))
+            if verbosity > 1:
+                print(msg.format(pa_threshold, ann, new_pa_th))
         else:
             print('PA threshold {:.2f} is likely too big, will be set to '
                   '{:.2f}'.format(pa_threshold, new_pa_th))
             pa_threshold = new_pa_th
 
-    if verbose:
+    if verbosity:
         if pa_threshold > 0:
             print('Ann {}    PA thresh: {:5.2f}    Ann center: '
                   '{:3.0f}    N segments: {} '.format(ann + 1, pa_threshold,
@@ -618,5 +637,89 @@ def _fft_shear(arr, arr_ori, c, ax, pad=0, shift_ini=True):
     s_x = fftshift(s_x)
     s_x = ifft(s_x, axis=ax)
     s_x = fftshift(s_x)
+
+    return s_x
+
+
+def tensor_rotate_fft(tensor, angle):
+    """Rotate Tensor using Fourier transform phases.
+
+    This is a Tensor adaptation of the vip-fft rotation function, and supposes
+    that the frame(s) are perfectly centred. If input frame(s) has even
+    dimensions, the center of rotation will NOT be between the 4 central pixels,
+    instead it will be on the top right of those 4 pixels. Make sure your images
+    are centered with respect to that pixel before rotation.
+
+    Parameters
+    ----------
+    tensor : torch.Tensor
+        Input image, 2d array.
+    angle : float
+        Rotation angle.
+
+    Returns
+    -------
+    array_out : torch.Tensor
+        Resulting frame.
+
+    """
+    y_ori, x_ori = tensor.shape[1:]
+
+    while angle < 0:
+        angle += 360
+    while angle > 360:
+        angle -= 360
+
+    if angle > 45:
+        dangle = angle % 90
+        if dangle > 45:
+            dangle = -(90 - dangle)
+        nangle = int(np.rint(angle / 90))
+        tensor_in = torch.rot90(tensor, nangle, [1, 2])
+    else:
+        dangle = angle
+        tensor_in = tensor.clone()
+
+    if y_ori % 2 or x_ori % 2:
+        # NO NEED TO SHIFT BY 0.5px: FFT assumes rot. center on cx+0.5, cy+0.5!
+        tensor_in = tensor_in[:, :-1, :-1]
+
+    a = np.tan(np.deg2rad(dangle) / 2).item()
+    b = -np.sin(np.deg2rad(dangle)).item()
+
+    y_new, x_new = tensor_in.shape[1:]
+    arr_xy = torch.from_numpy(np.mgrid[0:y_new, 0:x_new])
+    cy, cx = frame_center(tensor[0])
+    arr_y = arr_xy[0] - cy
+    arr_x = arr_xy[1] - cx
+
+    s_x = tensor_fft_shear(tensor_in, arr_x, a, ax=2)
+    s_xy = tensor_fft_shear(s_x, arr_y, b, ax=1)
+    s_xyx = tensor_fft_shear(s_xy, arr_x, a, ax=2)
+
+    if y_ori % 2 or x_ori % 2:
+        # set it back to original dimensions
+        array_out = torch.zeros([1, s_xyx.shape[1]+1, s_xyx.shape[2]+1])
+        array_out[0, :-1, :-1] = torch.real(s_xyx)
+    else:
+        array_out = torch.real(s_xyx)
+
+    return array_out
+
+
+def tensor_fft_shear(arr, arr_ori, c, ax):
+    ax2 = 1 - (ax-1) % 2
+    freqs = torch.fft.fftfreq(arr_ori.shape[ax2], dtype=torch.float64)
+    sh_freqs = torch.fft.fftshift(freqs)
+    arr_u = torch.tile(sh_freqs, (arr_ori.shape[ax-1], 1))
+    if ax == 2:
+        arr_u = torch.transpose(arr_u, 0, 1)
+    s_x = torch.fft.fftshift(arr)
+    s_x = torch.fft.fft(s_x, dim=ax)
+    s_x = torch.fft.fftshift(s_x)
+    s_x = torch.exp(-2j * torch.pi * c * arr_u * arr_ori) * s_x
+    s_x = torch.fft.fftshift(s_x)
+    s_x = torch.fft.ifft(s_x, dim=ax)
+    s_x = torch.fft.fftshift(s_x)
 
     return s_x

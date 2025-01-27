@@ -19,7 +19,7 @@ __all__ = ['ScatteredLightDisk',
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import newton
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d,PchipInterpolator
 from ..var import frame_center
 
 
@@ -1113,6 +1113,8 @@ class Interpolated_SPF(object):
             Optionnaly it can specify the kind of interpolation requested (as
             specified by the scipy.interpolate.interp1d function), by default
             it uses a quadratic interpolation.
+            best_spf_interp_pchip = PchipInterpolator(scat_angles,best_spf)(phi)    
+
         """
         if 'kind' in spf_dico.keys():
             if not isinstance(spf_dico['kind'], int) and spf_dico['kind'] not in \
@@ -1121,15 +1123,19 @@ class Interpolated_SPF(object):
                 raise TypeError('The key "{0:s}" must be an integer '
                                 'or a string ("linear", "nearest", "zero", "slinear", '
                                 '"quadratic", "cubic", "previous",'
-                                '"next"'.format(spf_dico['kind']))
+                                '"next" or "pchip")'.format(spf_dico['kind']))
             else:
                 kind = spf_dico['kind']
         else:
-            kind = 'quadratic'
-        self.interpolation_function = interp1d(spf_dico['phi'],
-                                               spf_dico['spf'], kind=kind,
-                                               bounds_error=False,
-                                               fill_value=np.nan)
+            kind = 'pchip'
+            # by default, we use pchip for interpolation
+            interp_func = PchipInterpolator(spf_dico['phi'],spf_dico['spf'])
+        if kind != 'pchip':
+            interp_func = interp1d(spf_dico['phi'],spf_dico['spf'], kind=kind,
+                                                   bounds_error=False,
+                                                   fill_value=np.nan)
+
+        self.interpolation_function = interp_func
 
     def compute_phase_function_from_cosphi(self, cos_phi):
         """

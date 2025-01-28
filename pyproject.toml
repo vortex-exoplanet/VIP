@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools", "wheel", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+version_file = "vip_hci/_version.py"
+
+[project]
+dynamic = ["version", "dependencies"]
+name = "vip_hci"
+license = {text = "MIT"}
+readme = {file = "README.rst", content-type = "text/x-rst"}
+requires-python = ">=3.8"
+authors = [{name = "Carlos Alberto Gomez Gonzalez", email = "carlosgg33@gmail.com"}]
+maintainers = [{name = "Valentin Christiaens", email = "valentinchrist@hotmail.com"}]
+description = "Package for astronomical high-contrast image processing"
+classifiers = [
+    'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: MIT License',
+    'Operating System :: MacOS :: MacOS X',
+    'Operating System :: POSIX :: Linux',
+    'Operating System :: Microsoft :: Windows',
+    'Natural Language :: English',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Topic :: Scientific/Engineering :: Astronomy'
+]
+
+[tool.setuptools]
+packages = ['vip_hci',
+            'vip_hci.config',
+            'vip_hci.fits',
+            'vip_hci.fm',
+            'vip_hci.invprob',
+            'vip_hci.metrics',
+            'vip_hci.objects',
+            'vip_hci.preproc',
+            'vip_hci.psfsub',
+            'vip_hci.stats',
+            'vip_hci.var']
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[project.optional-dependencies]
+dev = [
+    "sphinx",
+    "myst-nb",
+    "myst-parser",
+    "pandoc",
+    "nbsphinx",
+    "sphinx_rtd_theme",
+    "jupyter_sphinx",
+    "pytest",
+    "pytest-cov ~=2.6.0",
+    "pytest-split",
+    "flake8",
+    "flake8-bandit",
+    "flake8-docstrings",
+    "autopep8",
+    "pre-commit",
+    "opencv-python",
+    "ratelimit"
+]
+
+[project.urls]
+Documentation = "https://vip.readthedocs.io/en/latest/"
+Repository = "https://github.com/vortex-exoplanet/VIP"

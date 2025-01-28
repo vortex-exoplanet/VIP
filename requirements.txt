@@ -4,7 +4,7 @@ astropy
 photutils
 scikit-learn
 scikit-image
-emcee==2.2.1
+emcee
 nestle
 corner
 pandas

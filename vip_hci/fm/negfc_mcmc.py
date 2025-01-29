@@ -699,7 +699,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     conv_test: str, optional {'gb','ac'}
         Method to check for convergence:
             - 'gb' for gelman-rubin test
-                (http://digitalassets.lib.berkeley.edu/sdtr/ucb/text/305.pdf)
+                (https://digitalassets.lib.berkeley.edu/sdtr/ucb/text/305.pdf)
             - 'ac' for autocorrelation analysis
                 (https://emcee.readthedocs.io/en/stable/tutorials/autocorr/)
     ac_c: float, optional
@@ -725,7 +725,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
         Maximum number of steps per walker between two Gelman-Rubin test.
     nproc: int or None, optional
         The number of processes to use for parallelization. If None, will be set
-        automatically to half the number of CPUs available.
+        automatically to the number of CPUs available.
     output_dir: str, optional
         The name of the output directory which contains the output files in the
         case  ``save`` is True.
@@ -814,7 +814,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     else:
         raise TypeError("Interpolation not recognized.")
 
-    if nproc is None:  # actually not used anymore, now that Pool has been implemented for EnsembleSampler
+    if nproc is None:  # if the user has not provided nproc, determine the number of processes for Pool to use
         nproc = multiprocessing.cpu_count()
 
     # #########################################################################
@@ -920,9 +920,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     else:
         multiprocessing.set_start_method("spawn", force=True)  # slower, but available on all platforms
 
-    with multiprocessing.Pool() as pool:
+    with multiprocessing.Pool(processes=nproc) as pool:
         sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob,
-                                        pool=pool, moves=emcee.moves.StretchMove(a=2),
+                                        pool=pool, moves=emcee.moves.StretchMove(a=a),
                                         args=([bounds, cube, angs, psfn,
                                               fwhm, annulus_width, ncomp,
                                               aperture_radius, initial_state,

@@ -346,8 +346,8 @@ def _snr_contrast_esti(
     indicesy = indices[0][0]
     indicesx = indices[0][1]
 
-    flux_esti = np.zeros_like(indicesy)
-    prob_esti = np.zeros_like(indicesy)
+    flux_esti = np.zeros(indicesy.shape)
+    prob_esti = np.zeros(indicesy.shape)
 
     var_f = _var_esti(mcube, angle_list, var, crop, ann_center)
 
@@ -709,7 +709,9 @@ def KLIP_patch(frame, matrix, numbasis, angle_list, fwhm, pa_threshold,
             indices_left = _find_indices_adi(
                 angle_list, frame, pa_threshold, truncate=False, nframes=nframes
             )
-
+        if len(indices_left) == 0:
+            msg = "No frame index left matching pa threshold. Reduce delta_rot."
+            raise ValueError(msg)
         refs = matrix[indices_left]
 
     else:

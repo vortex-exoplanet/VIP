@@ -47,7 +47,7 @@ Options :
 """
 
 __author__ = "C.A. Gomez Gonzalez, V. Christiaens, T. Bédrine"
-__all__ = ["pca", "PCA_Params"]
+__all__ = ["pca", "PCA_Params", "get_pca_coeffs"]
 
 import numpy as np
 from multiprocessing import cpu_count
@@ -1748,3 +1748,65 @@ def _project_subtract(
             return residuals_res
     else:
         raise TypeError("Type not recognized for ncomp, should be int or float")
+
+
+def get_pca_coeffs(cube, pcs, ncomp, scaling=None, mask_center_px=None,
+                   verbose=True):
+    """Return the weights (coefficients) of each PC to create the PCA model for\
+    each image of the input cube.
+
+    Parameters
+    ----------
+    cube : 3d np.ndarray
+        DESCRIPTION.
+    pcs : 2d np ndarray
+        DESCRIPTION.
+    ncomp : int
+        How many PCs are used as a lower-dimensional subspace to project the
+        target frames.
+
+        * ADI (``cube`` is a 3d array): if an int is provided, ``ncomp`` is the
+        number of PCs extracted from ``cube`` itself. If ``ncomp`` is a float
+        in the interval [0, 1] then it corresponds to the desired cumulative
+        explained variance ratio (the corresponding number of components is
+        estimated). If ``ncomp`` is a tuple of two integers, then it
+        corresponds to an interval of PCs in which final residual frames are
+        computed (optionally, if a tuple of 3 integers is passed, the third
+        value is the step). If ``ncomp`` is a list of int, these will be used to
+        calculate residual frames. When ``ncomp`` is a tuple or list, and
+        ``source_xy`` is not None, then the S/Ns (mean value in a 1xFWHM
+        circular aperture) of the given (X,Y) coordinates are computed.
+
+        * ADI+RDI (``cube`` and ``cube_ref`` are 3d arrays): ``ncomp`` is the
+        number of PCs obtained from ``cube_ref``. If ``ncomp`` is a tuple,
+        then it corresponds to an interval of PCs (obtained from ``cube_ref``)
+        in which final residual frames are computed. If ``ncomp`` is a list of
+        int, these will be used to calculate residual frames. When ``ncomp`` is
+        a tuple or list, and ``source_xy`` is not None, then the S/Ns (mean
+        value in a 1xFWHM circular aperture) of the given (X,Y) coordinates are
+        computed.
+    scaling : Enum, or tuple of Enum, see `vip_hci.config.paramenum.Scaling`
+        Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+        function. If set to None, the input matrix is left untouched. In the
+        case of PCA-SADI in 2 steps, this can be a tuple of 2 values,
+        corresponding to the scaling for each of the 2 steps of PCA.
+    mask_center_px : None or int
+        If None, no masking is done. If an integer > 1 then this value is the
+        radius of the circular mask.
+    verbose : bool, optional
+        If True prints intermediate info.
+
+    Returns
+    -------
+    coeffs: : numpy ndarray
+        Weights of each PC to create the PCA model for each image of the cube.
+
+    """
+    z, y, x = np.shape(cube)
+    matrix = prepare_matrix(cube, scaling=scaling,
+                            mask_center_px=mask_center_px, mode='fullfr',
+                            verbose=verbose)
+    V = pcs.reshape(ncomp, -1)
+    coeffs = np.dot(V, matrix.T)
+
+    return coeffs

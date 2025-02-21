@@ -30,11 +30,11 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
              start_time=None, scale_list=None, initial_4dshape=None,
              weights=None, exclude_negative_lobes=False, **rot_options):
     """
-    Compute a grid, depending on ``range_pcs``, of residual PCA frames out of a
-    3d ADI cube (or a reference cube). If ``source_xy`` is provided, the number
-    of principal components are optimized by measuring the S/N at this location
-    on the frame (ADI, RDI). The metric used, set by ``fmerit``, could be the
-    given pixel's S/N, the maximum S/N in a FWHM circular aperture centered on
+    Compute a grid, depending on ``range_pcs``, of residual PCA frames out of a\
+    3d ADI cube (or a reference cube). If ``source_xy`` is provided, the number\
+    of principal components are optimized by measuring the S/N at this location\
+    on the frame (ADI, RDI). The metric used, set by ``fmerit``, could be the\
+    given pixel's S/N, the maximum S/N in a FWHM circular aperture centered on\
     the given coordinates or the mean S/N in the same circular aperture.
 
     Parameters

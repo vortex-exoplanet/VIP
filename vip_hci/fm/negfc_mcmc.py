@@ -833,7 +833,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
 
     mu_sig = get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
                               fwhm, initial_state[0], initial_state[1],
-                              initial_state[2], psfn, cube_ref=cube_ref,
+                              initial_state[2:], psfn, cube_ref=cube_ref,
                               wedge=wedge, svd_mode=svd_mode, scaling=scaling,
                               algo=algo, delta_rot=delta_rot, imlib=imlib_rot,
                               interpolation=interpolation, collapse=collapse,

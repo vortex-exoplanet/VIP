@@ -162,7 +162,7 @@ To install VIP, then simply cd into your local VIP directory, and run the instal
 .. code-block:: bash
 
    cd VIP
-   pip install -e . -r requirements-dev.txt
+   pip install -e .[dev]
 
 If cloned from your fork, make sure to link your VIP directory to the upstream
 source, to be able to easily update your local copy when a new version comes

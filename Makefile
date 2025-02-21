@@ -9,11 +9,11 @@ help:
 	@echo "clean - remove artifacts"
 
 pypi:
-	python setup.py sdist bdist_wheel
+	python -m build --sdist --wheel
 	twine upload dist/*
 
 pypi-test:
-	python setup.py sdist bdist_wheel
+	python -m build --sdist --wheel
 	twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
 docs:

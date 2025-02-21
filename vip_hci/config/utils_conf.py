@@ -472,6 +472,25 @@ def pool_map(nproc, fkt, *args, **kwargs):
         if not _generator:
             res = list(res)
     else:
+        # deactivate multithreading if not yet deactivated
+        try:
+            ncpus_mt1 = os.environ["OMP_NUM_THREADS"]
+            ncpus_mt2 = os.environ["NUMEXPR_NUM_THREADS"]
+            ncpus_mt3 = os.environ["MKL_NUM_THREADS"]
+            if ncpus_mt1 != "1" or ncpus_mt2 != "1" or ncpus_mt3 != "1":
+                os.environ["OMP_NUM_THREADS"] = "1"
+                os.environ["NUMEXPR_NUM_THREADS"] = "1"
+                os.environ["MKL_NUM_THREADS"] = "1"
+                wrongly_set = True
+            else:
+                wrongly_set = False
+            vars_are_set = True
+        except KeyError:  # if the variables are not set, set them manually
+            os.environ["OMP_NUM_THREADS"] = "1"
+            os.environ["NUMEXPR_NUM_THREADS"] = "1"
+            os.environ["MKL_NUM_THREADS"] = "1"
+            vars_are_set = False
+
         # Check available start methods and pick accordingly (machine-dependent)
         avail_methods = multiprocessing.get_all_start_methods()
         # if 'forkserver' in avail_methods:  # fast and safe, if available
@@ -503,11 +522,6 @@ def pool_map(nproc, fkt, *args, **kwargs):
 
         from multiprocessing import Pool
 
-        # deactivate multithreading
-        os.environ["MKL_NUM_THREADS"] = "1"
-        os.environ["NUMEXPR_NUM_THREADS"] = "1"
-        os.environ["OMP_NUM_THREADS"] = "1"
-
         if verbose and msg is not None:
             print("{} with {} processes".format(msg, nproc))
         pool = Pool(processes=nproc)
@@ -518,11 +532,15 @@ def pool_map(nproc, fkt, *args, **kwargs):
         pool.close()
         pool.join()
 
-        # reactivate multithreading
-        ncpus = multiprocessing.cpu_count()
-        os.environ["MKL_NUM_THREADS"] = str(ncpus)
-        os.environ["NUMEXPR_NUM_THREADS"] = str(ncpus)
-        os.environ["OMP_NUM_THREADS"] = str(ncpus)
+        # return back to default behaviour regarding multithreading
+        if not vars_are_set:
+            del os.environ["OMP_NUM_THREADS"]
+            del os.environ["NUMEXPR_NUM_THREADS"]
+            del os.environ["MKL_NUM_THREADS"]
+        elif wrongly_set:
+            os.environ["OMP_NUM_THREADS"] = ncpus_mt1
+            os.environ["NUMEXPR_NUM_THREADS"] = ncpus_mt2
+            os.environ["MKL_NUM_THREADS"] = ncpus_mt3
 
     return res
 

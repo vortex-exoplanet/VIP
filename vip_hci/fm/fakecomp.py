@@ -827,7 +827,8 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
         parameter must have a shape (n_pl,3) or (3,) -- the latter case assumes
         a single planet in the data. For a 4d cube r, theta and flux
         must all be 1d arrays with length equal to cube.shape[0]; i.e.
-        planet_parameter should have shape: (n_pl,3,n_ch).
+        planet_parameter should have shape: (n_pl,3,n_ch) or (3,n_ch) -- the
+        latter case assumes a single planet in the data.
     cube: numpy ndarray
         The cube of fits images expressed as a numpy.array.
     angs: numpy ndarray

@@ -21,8 +21,8 @@ sep = "―" * 80
 vip_figsize = (8, 5)
 vip_figdpi = 100
 
-def get_vip_version():
-    from vip_hci import __version__  # Delayed import to avoid circular import
+def _get_vip_version():
+    from vip_hci import __version__  # Delayed to avoid circular import
     return __version__
 
 
@@ -63,7 +63,7 @@ class Saveable(object):
                         data["_item_{}".format(a)] = True
 
                 np.savez_compressed(
-                    filename, _vip_version=get_vip_version(), _vip_object=vip_object, **data
+                    filename, _vip_version=_get_vip_version(), _vip_object=vip_object, **data
                 )
 
         else:
@@ -90,7 +90,7 @@ class Saveable(object):
             )
 
         file_vip_version = data["_vip_version"].item()
-        if file_vip_version != __version__:
+        if file_vip_version != _get_vip_version():
             print(
                 "The file was saved with VIP {}. There may be some"
                 "compatibility issues. Use with care."

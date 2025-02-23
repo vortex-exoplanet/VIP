@@ -1621,110 +1621,16 @@ def _project_subtract(
         ``svd/svd_wrapper()``
     """
     _, y, x = cube.shape
-    if isinstance(ncomp, (int, np.int_)):
-        if indices is not None and frame is not None:
-            matrix = prepare_matrix(
-                cube, scaling, mask_center_px, mode="fullfr", verbose=False
-            )
-        elif left_eigv:
-            matrix = prepare_matrix(cube, scaling, mask_center_px,
-                                    mode="fullfr", verbose=verbose,
-                                    discard_mask_pix=True)
-        else:
-            matrix = prepare_matrix(
-                cube, scaling, mask_center_px, mode="fullfr", verbose=verbose
-            )
-        if cube_sig is None:
-            matrix_emp = matrix.copy()
-        else:
-            if left_eigv:
-                matrix_sig = prepare_matrix(cube_sig, scaling, mask_center_px,
-                                            mode="fullfr", verbose=verbose,
-                                            discard_mask_pix=True)
-            else:
-                nfr = cube_sig.shape[0]
-                matrix_sig = np.reshape(cube_sig, (nfr, -1))
-            matrix_emp = matrix - matrix_sig
 
-        if cube_ref is not None:
-            if left_eigv:
-                matrix_ref = prepare_matrix(cube_sig, scaling, mask_center_px,
-                                            mode="fullfr", verbose=verbose,
-                                            discard_mask_pix=True)
-            else:
-                matrix_ref = prepare_matrix(cube_ref, scaling, mask_center_px,
-                                            mode="fullfr", verbose=verbose)
+    if not isinstance(ncomp, (int, np.int_, float, np.float16, np.float32,
+                              np.float64)):
+        raise TypeError("Type not recognized for ncomp, should be int or float")
 
-        # check whether indices are well defined (i.e. not empty)
-        msg = "{} frames comply to delta_rot condition < less than "
-        msg1 = msg + "min_frames_pca ({}). Try decreasing delta_rot or "
-        msg1 += "min_frames_pca"
-        msg2 = msg + "ncomp ({}). Try decreasing the parameter delta_rot or "
-        msg2 += "ncomp"
-        if indices is not None and frame is not None:
-            try:
-                ref_lib = matrix_emp[indices]
-            except IndexError:
-                indices = None
-            if cube_ref is None and indices is None:
-                raise RuntimeError(msg1.format(0, min_frames_pca))
-
-        # a rotation threshold is used (frames are processed one by one)
-        if indices is not None and frame is not None:
-            if cube_ref is not None:
-                ref_lib = np.concatenate((ref_lib, matrix_ref))
-            if ref_lib.shape[0] < min_frames_pca:
-                raise RuntimeError(msg1.format(ref_lib.shape[0],
-                                               min_frames_pca))
-            if ref_lib.shape[0] < ncomp:
-                raise RuntimeError(msg2.format(ref_lib.shape[0], ncomp))
-            curr_frame = matrix[frame]  # current frame
-            curr_frame_emp = matrix_emp[frame]
-            if left_eigv:
-                V = svd_wrapper(ref_lib, svd_mode, ncomp, False,
-                                left_eigv=left_eigv)
-                transformed = np.dot(curr_frame_emp.T, V)
-                reconstructed = np.dot(V, transformed.T)
-            else:
-                V = svd_wrapper(ref_lib, svd_mode, ncomp, False)
-                transformed = np.dot(curr_frame_emp, V.T)
-                reconstructed = np.dot(transformed.T, V)
-
-            residuals = curr_frame - reconstructed
-
-            if full_output:
-                return ref_lib.shape[0], residuals, reconstructed
-            else:
-                return ref_lib.shape[0], residuals
-
-        # the whole matrix is processed at once
-        else:
-            if cube_ref is not None:
-                ref_lib = matrix_ref
-            else:
-                ref_lib = matrix_emp
-            if left_eigv:
-                V = svd_wrapper(ref_lib, svd_mode, ncomp, verbose,
-                                left_eigv=left_eigv)
-                transformed = np.dot(matrix_emp.T, V)
-                reconstructed = np.dot(V, transformed.T)
-            else:
-                V = svd_wrapper(ref_lib, svd_mode, ncomp, verbose)
-                transformed = np.dot(V, matrix_emp.T)
-                reconstructed = np.dot(transformed.T, V)
-
-            residuals = matrix - reconstructed
-            residuals_res = reshape_matrix(residuals, y, x)
-
-            if full_output:
-                return residuals_res, reconstructed, V
-            else:
-                return residuals_res
-
-    elif isinstance(ncomp, (float, np.float16, np.float32, np.float64)):
+    # if a cevr is provided instead of an actual ncomp, first calculate it
+    if isinstance(ncomp, (float, np.float16, np.float32, np.float64)):
         if not 1 > ncomp > 0:
             raise ValueError(
-                "when `ncomp` is float, it must lie in the " "interval (0,1]"
+                "if `ncomp` is float, it must lie in the " "interval (0,1]"
             )
 
         svdecomp = SVDecomposer(cube, mode="fullfr", svd_mode=svd_mode,
@@ -1733,21 +1639,108 @@ def _project_subtract(
         # in this case ncomp is the desired CEVR
         cevr = ncomp
         ncomp = svdecomp.cevr_to_ncomp(cevr)
-        V = svdecomp.v[:ncomp]
-        transformed = np.dot(V, svdecomp.matrix.T)
-        reconstructed = np.dot(transformed.T, V)
-        residuals = svdecomp.matrix - reconstructed
-        residuals_res = reshape_matrix(residuals, y, x)
+        if verbose:
+            print("Components used : {}".format(ncomp))
 
-        if verbose and isinstance(cevr, float):
-            print("Components used : {}".format(V.shape[0]))
+    #  if isinstance(ncomp, (int, np.int_)):
+    if indices is not None and frame is not None:
+        matrix = prepare_matrix(
+            cube, scaling, mask_center_px, mode="fullfr", verbose=False
+        )
+    elif left_eigv:
+        matrix = prepare_matrix(cube, scaling, mask_center_px,
+                                mode="fullfr", verbose=verbose,
+                                discard_mask_pix=True)
+    else:
+        matrix = prepare_matrix(
+            cube, scaling, mask_center_px, mode="fullfr", verbose=verbose
+        )
+    if cube_sig is None:
+        matrix_emp = matrix.copy()
+    else:
+        if left_eigv:
+            matrix_sig = prepare_matrix(cube_sig, scaling, mask_center_px,
+                                        mode="fullfr", verbose=verbose,
+                                        discard_mask_pix=True)
+        else:
+            nfr = cube_sig.shape[0]
+            matrix_sig = np.reshape(cube_sig, (nfr, -1))
+        matrix_emp = matrix - matrix_sig
+
+    if cube_ref is not None:
+        if left_eigv:
+            matrix_ref = prepare_matrix(cube_sig, scaling, mask_center_px,
+                                        mode="fullfr", verbose=verbose,
+                                        discard_mask_pix=True)
+        else:
+            matrix_ref = prepare_matrix(cube_ref, scaling, mask_center_px,
+                                        mode="fullfr", verbose=verbose)
+
+    # check whether indices are well defined (i.e. not empty)
+    msg = "{} frames comply to delta_rot condition < less than "
+    msg1 = msg + "min_frames_pca ({}). Try decreasing delta_rot or "
+    msg1 += "min_frames_pca"
+    msg2 = msg + "ncomp ({}). Try decreasing the parameter delta_rot or "
+    msg2 += "ncomp"
+    if indices is not None and frame is not None:
+        try:
+            ref_lib = matrix_emp[indices]
+        except IndexError:
+            indices = None
+        if cube_ref is None and indices is None:
+            raise RuntimeError(msg1.format(0, min_frames_pca))
+
+    # a rotation threshold is used (frames are processed one by one)
+    if indices is not None and frame is not None:
+        if cube_ref is not None:
+            ref_lib = np.concatenate((ref_lib, matrix_ref))
+        if ref_lib.shape[0] < min_frames_pca:
+            raise RuntimeError(msg1.format(ref_lib.shape[0],
+                                           min_frames_pca))
+        if ref_lib.shape[0] < ncomp:
+            raise RuntimeError(msg2.format(ref_lib.shape[0], ncomp))
+        curr_frame = matrix[frame]  # current frame
+        curr_frame_emp = matrix_emp[frame]
+        if left_eigv:
+            V = svd_wrapper(ref_lib, svd_mode, ncomp, False,
+                            left_eigv=left_eigv)
+            transformed = np.dot(curr_frame_emp.T, V)
+            reconstructed = np.dot(V, transformed.T)
+        else:
+            V = svd_wrapper(ref_lib, svd_mode, ncomp, False)
+            transformed = np.dot(curr_frame_emp, V.T)
+            reconstructed = np.dot(transformed.T, V)
+
+        residuals = curr_frame - reconstructed
+
+        if full_output:
+            return ref_lib.shape[0], residuals, reconstructed
+        else:
+            return ref_lib.shape[0], residuals
+
+    # the whole matrix is processed at once
+    else:
+        if cube_ref is not None:
+            ref_lib = matrix_ref
+        else:
+            ref_lib = matrix_emp
+        if left_eigv:
+            V = svd_wrapper(ref_lib, svd_mode, ncomp, verbose,
+                            left_eigv=left_eigv)
+            transformed = np.dot(matrix_emp.T, V)
+            reconstructed = np.dot(V, transformed.T)
+        else:
+            V = svd_wrapper(ref_lib, svd_mode, ncomp, verbose)
+            transformed = np.dot(V, matrix_emp.T)
+            reconstructed = np.dot(transformed.T, V)
+
+        residuals = matrix - reconstructed
+        residuals_res = reshape_matrix(residuals, y, x)
 
         if full_output:
             return residuals_res, reconstructed, V
         else:
             return residuals_res
-    else:
-        raise TypeError("Type not recognized for ncomp, should be int or float")
 
 
 def get_pca_coeffs(cube, pcs, ncomp, scaling=None, mask_center_px=None,

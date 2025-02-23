@@ -86,7 +86,7 @@ class IPCA_Params(PCA_Params):
     thr_mode: str = 'STIM'
     r_out: float = None
     r_max: float = None
-    smooth_ker: Union[float, List] = None
+    smooth_ker: Union[float, List, np.ndarray] = None
     rtol: float = 1e-2
     atol: float = 1e-2
     continue_without_smooth_after_conv: bool = False
@@ -304,10 +304,11 @@ def ipca(*all_args: List, **all_kwargs: dict):
         Absolute tolerance threshold element-wise in the significant signal
         image compared to the same image obtained either 1 or 2 iterations
         before, to consider convergence [more details in np.allclose].
-    smooth_ker: None or float or list/1darray of floats, optional
-        If not None, size in pixels of the Gaussian kernel to use on
+    smooth_ker: None or float or list/1darray of floats or 2darray, optional
+        If a float: size in pixels of the Gaussian kernel to use on
         post-processed image obtained at each iteration to include the expected
-        spatial correlation of neighbouring pixels. Default is to consider a
+        spatial correlation of neighbouring pixels. If a 2D numpy array: the
+        normalized PSF to use for convolution. Default is to consider a
         kernel size of 1 pixel. If a list/1d array, length should be equal to
         the number of iterations. Depending on your data, starting with a
         larger kernel (e.g. FWHM/2) and progressively decreasing it with
@@ -371,9 +372,13 @@ def ipca(*all_args: List, **all_kwargs: dict):
                                      fillwith=np.nan, mode='out')
             frame_mask2 = mask_circle(array, radius=mask_center_sz,
                                       fillwith=np.nan, mode='out')
-            frame_filt = frame_filter_lowpass(frame_mask, mode='gauss',
-                                              fwhm_size=fwhm_sz,
-                                              iterate=False)
+            if np.isscalar(fwhm_sz):
+                frame_filt = frame_filter_lowpass(frame_mask, mode='gauss',
+                                                  fwhm_size=fwhm_sz,
+                                                  iterate=False)
+            elif fwhm_sz.ndim == 2:  # if a psf
+                frame_filt = frame_filter_lowpass(frame_mask, psf=fwhm_sz,
+                                                  iterate=False)
             nonan_loc = np.where(np.isfinite(frame_mask2))
             array[nonan_loc] = frame_filt[nonan_loc]
         else:
@@ -590,8 +595,8 @@ def ipca(*all_args: List, **all_kwargs: dict):
         residuals_cube_ = res[-1]
         # smoothing and manual derotation if requested
         smooth_ker = algo_params.smooth_ker
-        if smooth_ker is None or np.isscalar(smooth_ker):
-            smooth_ker = np.array([smooth_ker]*algo_params.nit, dtype=object)
+        if smooth_ker is None or np.isscalar(smooth_ker) or smooth_ker.ndim == 2:
+            smooth_ker = [smooth_ker]*algo_params.nit
         else:
             smooth_ker = np.array(smooth_ker, dtype=object)
         # if smooth_ker[0] is not None:
@@ -603,7 +608,10 @@ def ipca(*all_args: List, **all_kwargs: dict):
         #                                     nproc=algo_params.nproc)
         #     frame = cube_collapse(residuals_cube_, algo_params.collapse)
         if smooth_ker[0] is not None:
-            frame = frame_filter_lowpass(frame, fwhm_size=smooth_ker[0])
+            if np.isscalar(smooth_ker[0]):
+                frame = frame_filter_lowpass(frame, fwhm_size=smooth_ker[0])
+            elif smooth_ker[0].ndim == 2:
+                frame = frame_filter_lowpass(frame, psf=smooth_ker[0])
 
         # 3. Identify significant signals with STIM map
         it_cube = np.zeros([algo_params.nit, frame.shape[0], frame.shape[1]])

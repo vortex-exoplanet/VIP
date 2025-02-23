@@ -621,7 +621,7 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
                      cube_ref=None, wedge=None, svd_mode="lapack", scaling=None,
                      algo=pca_annulus, delta_rot=1, imlib="vip-fft",
                      interpolation="lanczos4", collapse="median", weights=None,
-                     algo_options={}, bin_spec=False):
+                     algo_options={}, bin_spec=False, verbose=False):
     """Extract the mean and standard deviation of pixel intensities in an\
     annulus of the PCA-ADI image obtained with 'algo', in the part of a defined\
     wedge that is not overlapping with PA_pl+-delta_PA.
@@ -733,10 +733,11 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
                                  imlib=imlib, interpolation=interpolation,
                                  transmission=None)
     else:
-        msg = "WARNING: f_guess not provided. The companion will not be "
-        msg += "removed from the cube before estimating mu and sigma. "
-        msg += "A wedge will be used"
-        print(msg)
+        if verbose:
+            msg = "WARNING: f_guess not provided. The companion will not be "
+            msg += "removed from the cube before estimating mu and sigma. "
+            msg += "A wedge will be used"
+            print(msg)
         array = cube.copy()
 
     centy_fr, centx_fr = frame_center(array[0])

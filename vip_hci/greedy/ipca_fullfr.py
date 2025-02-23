@@ -672,7 +672,10 @@ def ipca(*all_args: List, **all_kwargs: dict):
                 # Run PCA on original cube
                 # Update PCA PARAMS
                 pca_params['cube'] = algo_params.cube
-                pca_params['cube_ref'] = ref_cube
+                if algo_params.strategy == 'ADI':
+                    pca_params['cube_ref'] = None
+                else:
+                    pca_params['cube_ref'] = ref_cube
                 pca_params['ncomp'] = final_ncomp[it]
                 pca_params['scaling'] = algo_params.scaling
                 pca_params['cube_sig'] = sig_cube
@@ -749,7 +752,9 @@ def ipca(*all_args: List, **all_kwargs: dict):
                     cond_it = (it % nit_ori != nit_ori-1)
                     if cond_mod and cond_it:
                         cond_skip = True
-                    else:
+                    elif cond_mod:  # in incremental mode don't skip if cond_it
+                        cond_skip = False
+                    else:  # else in non-incremental mode: break or don't smooth
                         cond_skip = False
                         condc = algo_params.continue_without_smooth_after_conv
                         msg = "Convergence criterion met after {} iterations"
@@ -760,7 +765,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
                                 if algo_params.verbose:
                                     print(msg.format(it)+msg2)
                             else:
-                                if algo_params.verbose:
+                                if algo_params.verbose and not cond_it:
                                     print("Final " + msg.format(it))
                                 break
                     if algo_params.strategy == 'RADI':

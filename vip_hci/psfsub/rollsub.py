@@ -43,8 +43,8 @@ class ROLL_SUB_Params:
     imlib: Enum = Imlib.VIPFFT
     interpolation: Enum = Interpolation.LANCZOS4
     collapse: Enum = Collapse.MEAN
-    fwhm_lp_bef: float = 0.
-    fwhm_lp_aft: float = 0.
+    smooth_ker_bef: float = 0.
+    smooth_ker_aft: float = 0.
     mask_rad: float = 0.
     cube_sig: np.ndarray = None
     nproc: int = 1
@@ -96,11 +96,11 @@ def roll_sub(*all_args: List, **all_kwargs: dict):
     collapse : Enum, see `vip_hci.config.paramenum.Collapse`
         Sets how temporal residual frames should be combined to produce an
         ADI image.
-    fwhm_lp_bef : float, optional
+    smooth_ker_bef : float, optional
         FWHM of the Gaussian kernel used for low-pass filtering of the input
         images. Can be useful for mode='individual' and spatially subsampled
         input images. If set to 0 (default), no low-pass filtering is performed.
-    fwhm_lp_aft : float, optional
+    smooth_ker_aft : float, optional
         FWHM of the Gaussian kernel used for low-pass filtering of the final
         image. Can be useful for spatially subsampled input images. If set to 0
         (default), no low-pass filtering is performed.
@@ -177,11 +177,14 @@ def roll_sub(*all_args: List, **all_kwargs: dict):
     if algo_params.nproc is None:
         algo_params.nproc = cpu_count() // 2
 
-    if algo_params.fwhm_lp_bef > 0:
+    cube = ARRAY.copy()
+    if np.isscalar(algo_params.smooth_ker_bef):
+        if algo_params.smooth_ker_bef > 0:
+            cube = cube_filter_lowpass(ARRAY.copy(),
+                                       fwhm_size=algo_params.smooth_ker_bef)
+    elif algo_params.smooth_ker_bef.ndim == 2:
         cube = cube_filter_lowpass(ARRAY.copy(),
-                                   fwhm_size=algo_params.fwhm_lp_bef)
-    else:
-        cube = ARRAY.copy()
+                                   psf=algo_params.smooth_ker_bef)
 
     if algo_params.cube_sig is not None:
         cube_ref = cube - algo_params.cube_sig
@@ -208,7 +211,7 @@ def roll_sub(*all_args: List, **all_kwargs: dict):
                                  interpolation=algo_params.interpolation,
                                  nproc=algo_params.nproc,
                                  **rot_options,)
-        fin_roll = cube_collapse(cube_der, mode=algo_params.collapse)
+        finroll = cube_collapse(cube_der, mode=algo_params.collapse)
 
     else:
         mr1 = np.mean(cube[idx1], axis=0)
@@ -223,7 +226,6 @@ def roll_sub(*all_args: List, **all_kwargs: dict):
                                  imlib=algo_params.imlib,
                                  interpolation=algo_params.interpolation,
                                  **rot_options)
-
         dr21 = mr2-arr1
         dr21_drot = frame_rotate(dr21, ang2,
                                  imlib=algo_params.imlib,
@@ -232,20 +234,23 @@ def roll_sub(*all_args: List, **all_kwargs: dict):
 
         cube_res = np.array([dr12, dr21])
         cube_der = np.array([dr12_drot, dr21_drot])
-        fin_roll = cube_collapse(cube_der, mode=algo_params.collapse)
+        finroll = cube_collapse(cube_der, mode=algo_params.collapse)
 
-    if algo_params.fwhm_lp_aft > 0:
-        fin_roll = frame_filter_lowpass(fin_roll,
-                                        fwhm_size=algo_params.fwhm_lp_aft)
-
+    if np.isscalar(algo_params.smooth_ker_aft):
+        if algo_params.smooth_ker_aft > 0:
+            finroll = frame_filter_lowpass(finroll,
+                                           fwhm_size=algo_params.smooth_ker_aft)
+    elif algo_params.smooth_ker_aft.ndim == 2:
+        finroll = frame_filter_lowpass(finroll,
+                                       psf=algo_params.smooth_ker_aft)
     if algo_params.mask_rad > 0:
-        fin_roll = mask_circle(fin_roll, algo_params.mask_rad)
+        finroll = mask_circle(finroll, algo_params.mask_rad)
 
     if algo_params.verbose:
         print("Done derotating and combining")
         timing(start_time)
 
     if algo_params.full_output:
-        return cube_res, cube_der, fin_roll
+        return cube_res, cube_der, finroll
     else:
-        return fin_roll
+        return finroll

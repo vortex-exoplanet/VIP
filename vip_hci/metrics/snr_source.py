@@ -84,7 +84,7 @@ def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
     sizey, sizex = array.shape
     snrmap_array = np.zeros_like(array)
     width = min(sizey, sizex) / 2 - 1.5*fwhm
-    mask = get_annulus_segments(array, (fwhm / 2) + 1, width, mode="mask")[0]
+    mask = get_annulus_segments(array, fwhm, width, mode="mask")[0]
     mask = np.ma.make_mask(mask)
     # by making a bool mask *after* applying the mask to the array, we also mask
     # out zero values from the array. This logic cannot be simplified by using

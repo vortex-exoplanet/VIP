@@ -7,4 +7,4 @@ modelling + subtraction algorithms. The following methods have been implemented:
 """
 from .inmf_fullfr import *
 from .ipca_fullfr import *
-from .iroll import *
+from .irollsub import *

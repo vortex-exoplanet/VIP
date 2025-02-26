@@ -19,16 +19,14 @@ __all__ = ['ScatteredLightDisk',
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import newton
-from scipy.interpolate import interp1d,PchipInterpolator
+from scipy.interpolate import interp1d, PchipInterpolator
 from ..var import frame_center
 
 
 class ScatteredLightDisk(object):
-    """
-    Class used to generate a synthetic disc, inspired from a light version of
-    the GRATER tool (GRenoble RAdiative TransfER) written originally in IDL
-    [AUG99]_, and converted to Python by J. Milli.
-    """
+    """Class used to generate a synthetic disc, inspired from a light version\
+    of the GRATER tool (GRenoble RAdiative TransfER) written originally in IDL\
+    [AUG99]_, and converted to Python by J. Milli."""
 
     def __init__(self, nx=200, ny=200, distance=50., itilt=60., omega=0.,
                  pxInArcsec=0.01225, pa=0., flux_max=None,
@@ -36,18 +34,19 @@ class ScatteredLightDisk(object):
                                'a': 40, 'e': 0, 'ksi0': 1., 'gamma': 2.,
                                'beta': 1., 'dens_at_r0': 1.},
                  spf_dico={'name': 'HG', 'g': 0., 'polar': False}, xdo=0.,
-                 ydo=0.,xs=None,ys=None):
+                 ydo=0., xs=None, ys=None):
         """
-        Constructor of the Scattered_light_disk object, taking in input the
-        geometric parameters of the disk, the radial density distribution
+        Construct the Scattered_light_disk object, taking in input the\
+        geometric parameters of the disk, the radial density distribution\
         and the scattering phase function.
+
         So far, only one radial distribution is implemented: a smoothed
         2-power-law distribution, but more complex radial profiles can be
         implemented on demand.
-        By default, the star is assumed to be centered at the frame center as defined in
-        the vip_hci.var.frame_center function (geometric center of the image,
-        e.g. either in the middle of the central pixel for odd-size images or
-        in between 4 pixel for even-size images).
+        By default, the star is assumed to be centered at the frame center as
+        defined in the vip_hci.var.frame_center function (geometric center of
+        the image, e.g. either in the middle of the central pixel for odd-size
+        images or in between 4 pixel for even-size images).
 
         Parameters
         ----------
@@ -66,7 +65,7 @@ class ScatteredLightDisk(object):
             pixel field of view in arcsec/px (default the SPHERE pixel
             scale 0.01225 arcsec/px)
         pa : float
-            position angle of the disc in degrees (default 0 degrees, e.g. North)
+            position angle of the disc in degrees (default 0 deg, e.g. North)
         flux_max : float
             the max flux of the disk in ADU. By default None, meaning that
             the disk flux is not normalized to any value.
@@ -98,9 +97,9 @@ class ScatteredLightDisk(object):
                     minimim semi-major axis: the dust density is 0 below this
                     value (default 0)
         spf_dico :  dictionnary
-            Parameters describing the scattering phase function to be implemented.
-            By default, an isotropic phase function is implemented. It should
-            at least contain the key "name".
+            Parameters describing the scattering phase function to be
+            implemented. By default, an isotropic phase function is implemented.
+            It should at least contain the key "name".
         xdo : float
             disk offset along the x-axis in the disk frame (=semi-major axis),
             in a.u. (default 0)
@@ -108,17 +107,17 @@ class ScatteredLightDisk(object):
             disk offset along the y-axis in the disk frame (=semi-minor axis),
             in a.u. (default 0)
         xs : float
-            star x position in pixel. By default, the star is assumed to be 
-            centered at the frame center as defined in
-            the vip_hci.var.frame_center function (geometric center of the image,
-            e.g. either in the middle of the central pixel for odd-size images or
-            in between 4 pixel for even-size images).
+            star x position in pixel. By default, the star is assumed to be
+            centered at the frame center as defined in the
+            vip_hci.var.frame_center function (geometric center of the image,
+            e.g. either in the middle of the central pixel for odd-size images
+            or in between 4 pixel for even-size images).
         ys : float
-            star y position in pixel. By default, the star is assumed to be 
-            centered at the frame center as defined in
-            the vip_hci.var.frame_center function (geometric center of the image,
-            e.g. either in the middle of the central pixel for odd-size images or
-            in between 4 pixel for even-size images).
+            star y position in pixel. By default, the star is assumed to be
+            centered at the frame center as defined in the
+            vip_hci.var.frame_center function (geometric center of the image,
+            e.g. either in the middle of the central pixel for odd-size images
+            or in between 4 pixel for even-size images).
         """
         self.nx = nx    # number of pixels along the x axis of the image
         self.ny = ny    # number of pixels along the y axis of the image
@@ -151,7 +150,7 @@ class ScatteredLightDisk(object):
 
     def set_inclination(self, itilt):
         """
-        Sets the inclination of the disk.
+        Set the inclination of the disk.
 
         Parameters
         ----------
@@ -165,7 +164,7 @@ class ScatteredLightDisk(object):
 
     def set_pa(self, pa):
         """
-        Sets the disk position angle
+        Set the disk position angle.
 
         Parameters
         ----------
@@ -182,7 +181,7 @@ class ScatteredLightDisk(object):
 
     def set_omega(self, omega):
         """
-        Sets the argument of pericenter
+        Set the argument of pericenter.
 
         Parameters
         ----------
@@ -193,7 +192,7 @@ class ScatteredLightDisk(object):
 
     def set_flux_max(self, flux_max):
         """
-        Sets the mas flux of the disk
+        Set the mas flux of the disk.
 
         Parameters
         ----------
@@ -204,7 +203,7 @@ class ScatteredLightDisk(object):
 
     def set_density_distribution(self, density_dico):
         """
-        Sets or updates the parameters of the density distribution
+        Set or update the parameters of the density distribution.
 
         Parameters
         ----------
@@ -237,7 +236,7 @@ class ScatteredLightDisk(object):
 
     def set_phase_function(self, spf_dico):
         """
-        Sets the phase function of the dust
+        Set the phase function of the dust.
 
         Parameters
         ----------
@@ -252,9 +251,7 @@ class ScatteredLightDisk(object):
         self.phase_function = Phase_function(spf_dico=spf_dico)
 
     def print_info(self):
-        """
-        Prints the information of the disk and image parameters
-        """
+        """Print the information of the disk and image parameters."""
         print('-----------------------------------')
         print('Geometrical properties of the image')
         print('-----------------------------------')
@@ -276,23 +273,23 @@ class ScatteredLightDisk(object):
         self.phase_function.print_info()
 
     def check_inclination(self):
-        """
-        Checks whether the inclination set is close to edge-on and risks to
-        induce artefacts from the limited numerical accuracy. In such a case
-        the inclination is changed to be less edge-on.
-        """
+        """Check whether the inclination set is close to edge-on and risks to\
+        induce artefacts from the limited numerical accuracy. In such a case\
+        the inclination is changed to be less edge-on."""
         if np.abs(np.mod(self.itilt, 180)-90) < np.abs(
-                np.mod(self.dust_density.dust_distribution_calc.itiltthreshold, 180)-90):
+                np.mod(self.dust_density.dust_distribution_calc.itiltthreshold,
+                       180)-90):
             print('Warning the disk is too close to edge-on')
             msg = 'The inclination was changed from {0:.2f} to {1:.2f}'
+            ittthr = self.dust_density.dust_distribution_calc.itiltthreshold
             print(msg.format(self.itilt,
-                             self.dust_density.dust_distribution_calc.itiltthreshold))
+                             ittthr))
             self.set_inclination(
                 self.dust_density.dust_distribution_calc.itiltthreshold)
 
     def compute_scattered_light(self, halfNbSlices=25):
         """
-        Computes the scattered light image of the disk.
+        Compute the scattered light image of the disk.
 
         Parameters
         ----------
@@ -326,8 +323,8 @@ class ScatteredLightDisk(object):
         # 1d array pre-calculated values, AU
         zsn_vector = -self.sini*self.y_map[validPixel_map]
         xd_vector = self.x_map[validPixel_map]  # x_disk, in AU
-        limage = np.ndarray((nbSlices, self.ny, self.nx))
-        limage.fill(0.)
+        lima = np.ndarray((nbSlices, self.ny, self.nx))
+        lima.fill(0.)
 
         for il in range(nbSlices):
             # distance along the line of sight to reach the plane z
@@ -356,17 +353,18 @@ class ScatteredLightDisk(object):
             rho_vector = self.dust_density.density_cylindrical(r_vector,
                                                                costheta_vector,
                                                                zd_vector)
-            phase_function = self.phase_function.compute_phase_function_from_cosphi(
+            ph_f = self.phase_function.compute_phase_function_from_cosphi(
                 cosphi_vector)
             image = np.ndarray((self.ny, self.nx))
             image.fill(0.)
-            image[validPixel_map] = rho_vector*phase_function/d2star_vector
-            limage[il, :, :] = image
+            image[validPixel_map] = rho_vector*ph_f/d2star_vector
+            lima[il, :, :] = image
         self.scattered_light_map.fill(0.)
         for il in range(1, nbSlices):
-            self.scattered_light_map += (ll[il]-ll[il-1]) * (limage[il-1, :, :] +
-                                                             limage[il, :, :])
-        self.scattered_light_map[validPixel_map] *= dl_map[validPixel_map] / 2. * self.pxInAU**2
+            self.scattered_light_map += (ll[il]-ll[il-1]) * (lima[il-1, :, :] +
+                                                             lima[il, :, :])
+        self.scattered_light_map[validPixel_map] *= (dl_map[validPixel_map] / 2.
+                                                     * self.pxInAU**2)
         if self.flux_max is not None:
             self.scattered_light_map *= (self.flux_max /
                                          np.nanmax(self.scattered_light_map))
@@ -374,8 +372,8 @@ class ScatteredLightDisk(object):
 
     def get_scattering_angle(self):
         """
-        Function that computes an image with the scattering angle of the dust 
-        located in the disk midplane at each point in the image 
+        Compute an image with the scattering angle of the dust\
+        located in the disk midplane at each point in the image.
 
         Returns
         -------
@@ -405,17 +403,16 @@ class ScatteredLightDisk(object):
         cosphi_vector = (rstar_vector*self.sini*np.sin(thetastar_vector) +
                          zd_vector*self.cosi)/dstar_vector  # in radians
         return np.rad2deg(np.arccos(cosphi_vector))
-        
+
 
 class Dust_distribution(object):
-    """This class represents the dust distribution
-    """
+    """Class representing the dust distribution."""
 
     def __init__(self, density_dico={'name': '2PowerLaws', 'ain': 5, 'aout': -5,
                                      'a': 60, 'e': 0, 'ksi0': 1., 'gamma': 2.,
                                      'beta': 1., 'amin': 0., 'dens_at_r0': 1.}):
         """
-        Constructor for the Dust_distribution class.
+        Construct the Dust_distribution class.
 
         We assume the dust density is 0 radially after it drops below 0.5%
         (the accuracy variable) of the peak density in
@@ -441,28 +438,21 @@ class Dust_distribution(object):
             raise TypeError(errmsg)
 
     def set_density_distribution(self, density_dico):
-        """
-        Update the parameters of the density distribution.
-        """
+        """Update the parameters of the density distribution."""
         self.dust_distribution_calc.set_density_distribution(density_dico)
 
     def density_cylindrical(self, r, costheta, z):
-        """
-        Return the particule volume density at r, theta, z.
-        """
+        """Return the particule volume density at r, theta, z."""
         return self.dust_distribution_calc.density_cylindrical(r, costheta, z)
 
     def density_cartesian(self, x, y, z):
-        """
-        Return the particule volume density at x,y,z, taking into account the
-        offset of the disk.
-        """
+        """Return the particule volume density at x,y,z, taking into account\
+        the offset of the disk."""
         return self.dust_distribution_calc.density_cartesian(x, y, z)
 
     def print_info(self, pxInAu=None):
         """
-        Utility function that displays the parameters of the radial distribution
-        of the dust
+        Display the parameters of the radial distribution of the dust.
 
         Input:
             - pxInAu (optional): the pixel size in au
@@ -474,15 +464,14 @@ class Dust_distribution(object):
 
 
 class DustEllipticalDistribution2PowerLaws:
-    """
-    """
+    """Class representing the elliptical dust distribution with 2 Power laws."""
 
-    def __init__(self, accuracy=5.e-3, density_dico={'ain': 5, 'aout': -5,
-                                                     'a': 60, 'e': 0, 'ksi0': 1.,
-                                                     'gamma': 2., 'beta': 1.,
-                                                     'amin': 0., 'dens_at_r0': 1.}):
+    def __init__(self, accuracy=5.e-3,
+                 density_dico={'ain': 5, 'aout': -5, 'a': 60, 'e': 0,
+                               'ksi0': 1., 'gamma': 2., 'beta': 1., 'amin': 0.,
+                               'dens_at_r0': 1.}):
         """
-        Constructor for the Dust_distribution class.
+        Construct the Dust_distribution class.
 
         We assume the dust density is 0 radially after it drops below 0.5%
         (the accuracy variable) of the peak density in
@@ -493,8 +482,7 @@ class DustEllipticalDistribution2PowerLaws:
         self.set_density_distribution(density_dico)
 
     def set_density_distribution(self, density_dico):
-        """
-        """
+        """Set the density distribution."""
         if 'ksi0' not in density_dico.keys():
             ksi0 = 1.
         else:
@@ -542,7 +530,7 @@ class DustEllipticalDistribution2PowerLaws:
 
     def set_vertical_density(self, ksi0=1., gamma=2., beta=1.):
         """
-        Sets the parameters of the vertical density function
+        Set the parameters of the vertical density function.
 
         Parameters
         ----------
@@ -574,7 +562,7 @@ class DustEllipticalDistribution2PowerLaws:
     def set_radial_density(self, ain=5., aout=-5., a=60.,
                            e=0., amin=0., dens_at_r0=1.):
         """
-        Sets the parameters of the radial density function
+        Set the parameters of the radial density function.
 
         Parameters
         ----------
@@ -636,8 +624,10 @@ class DustEllipticalDistribution2PowerLaws:
                                                1./(2.*(self.ain-self.aout)))
                 Gamma_in = self.ain+self.beta
                 Gamma_out = self.aout+self.beta
-                self.apeak_surface_density = self.a * np.power(-Gamma_in/Gamma_out,
-                                                               1./(2.*(Gamma_in-Gamma_out)))
+                ratio = Gamma_in/Gamma_out
+                diff = Gamma_in-Gamma_out
+                self.apeak_surface_density = self.a * np.power(-ratio,
+                                                               1./(2.*diff))
                 # the above formula comes from Augereau et al. 1999.
             else:
                 self.apeak = self.a
@@ -658,8 +648,7 @@ class DustEllipticalDistribution2PowerLaws:
 
     def print_info(self, pxInAu=None):
         """
-        Utility function that displays the parameters of the radial distribution
-        of the dust
+        Display the parameters of the radial distribution of the dust.
 
         Input:
             - pxInAu (optional): the pixel size in au
@@ -687,18 +676,18 @@ class DustEllipticalDistribution2PowerLaws:
         if pxInAu is not None:
             msg = 'Reference semi-major axis: {0:.1f}au or {1:.1f}px'
             print(msg.format(self.a, self.a/pxInAu))
-            msg2 = 'Semi-major axis at maximum dust density in plane z=0: {0:.1f}au or ' \
-                   '{1:.1f}px (same as ref sma if ain=-aout)'
+            msg2 = 'Semi-major axis at maximum dust density in plane z=0:' \
+                   ' {0:.1f}au or {1:.1f}px (same as ref sma if ain=-aout)'
             print(msg2.format(self.apeak, self.apeak/pxInAu))
-            msg3 = 'Semi-major axis at half max dust density in plane z=0: {0:.1f}au or ' \
-                '{1:.1f}px for the inner edge ' \
-                '/ {2:.1f}au or {3:.1f}px for the outer edge, with a FWHM of ' \
-                '{4:.1f}au or {5:.1f}px'
+            msg3 = 'Semi-major axis at half max dust density in plane z=0:' \
+                   '{0:.1f}au or {1:.1f}px for the inner edge ' \
+                   '/ {2:.1f}au or {3:.1f}px for the outer edge, with a FWHM' \
+                   '{4:.1f}au or {5:.1f}px'
             print(msg3.format(a_minus_hwhm, a_minus_hwhm/pxInAu, a_plus_hwhm,
                               a_plus_hwhm/pxInAu, a_plus_hwhm-a_minus_hwhm,
                               (a_plus_hwhm-a_minus_hwhm)/pxInAu))
-            msg4 = 'Semi-major axis at maximum dust surface density: {0:.1f}au or ' \
-                   '{1:.1f}px (same as ref sma if ain=-aout)'
+            msg4 = 'Semi-major axis at maximum dust surface density: {0:.1f}au'\
+                   ' or {1:.1f}px (same as ref sma if ain=-aout)'
             print(
                 msg4.format(
                     self.apeak_surface_density,
@@ -708,8 +697,8 @@ class DustEllipticalDistribution2PowerLaws:
             print(msg5.format(self.p, self.p/pxInAu))
         else:
             print('Reference semi-major axis: {0:.1f}au'.format(self.a))
-            msg = 'Semi-major axis at maximum dust density in plane z=0: {0:.1f}au (same ' \
-                  'as ref sma if ain=-aout)'
+            msg = 'Semi-major axis at maximum dust density in plane z=0: ' \
+                  '{0:.1f}au (same as ref sma if ain=-aout)'
             print(msg.format(self.apeak))
             msg3 = 'Semi-major axis at half max dust density: {0:.1f}au ' \
                 '/ {1:.1f}au for the inner/outer edge, or a FWHM of ' \
@@ -720,8 +709,8 @@ class DustEllipticalDistribution2PowerLaws:
                     a_plus_hwhm,
                     a_plus_hwhm -
                     a_minus_hwhm))
-            msg4 = 'Semi-major axis at maximum dust surface density: {0:.1f}au ' \
-                   '(same as ref sma if ain=-aout)'
+            msg4 = 'Semi-major axis at maximum dust surface density: '\
+                   '{0:.1f}au (same as ref sma if ain=-aout)'
             print(
                 msg4.format(
                     self.apeak_surface_density))
@@ -729,8 +718,8 @@ class DustEllipticalDistribution2PowerLaws:
         print('Ellipticity: {0:.3f}'.format(self.e))
         print('Inner slope: {0:.2f}'.format(self.ain))
         print('Outer slope: {0:.2f}'.format(self.aout))
-        print(
-            'Density at the reference semi-major axis: {0:4.3e} (arbitrary unit'.format(self.dens_at_r0))
+        msg = 'Density at the reference semi-major axis: {0:4.3e}'
+        print(msg.format(self.dens_at_r0) + '(arbitrary unit)')
         if self.amin > 0:
             print('Minimum radius (sma): {0:.2f}au'.format(self.amin))
         if pxInAu is not None:
@@ -748,7 +737,6 @@ class DustEllipticalDistribution2PowerLaws:
         print('Properties for numerical integration')
         print('------------------------------------')
         print('Requested accuracy {0:.2e}'.format(self.accuracy))
-#        print('Minimum radius for integration: {0:.2f} au'.format(self.rmin))
         print('Maximum radius for integration: {0:.2f} au'.format(self.rmax))
         print('Maximum height for integration: {0:.2f} au'.format(self.zmax))
         msg = 'Inclination threshold: {0:.2f} degrees'
@@ -756,8 +744,7 @@ class DustEllipticalDistribution2PowerLaws:
         return
 
     def density_cylindrical(self, r, costheta, z):
-        """ Returns the particule volume density at r, theta, z
-        """
+        """Return the particule volume density at r, theta, z."""
         radial_ratio = r/(self.p/(1-self.e*costheta))
         den = (np.power(radial_ratio, -2*self.ain) +
                np.power(radial_ratio, -2*self.aout))
@@ -769,9 +756,8 @@ class DustEllipticalDistribution2PowerLaws:
         return radial_density_term*vertical_density_term
 
     def density_cartesian(self, x, y, z):
-        """ Returns the particule volume density at x,y,z, taking into account
-        the offset of the disk
-        """
+        """Return the particule volume density at x,y,z, taking into account\
+        the offset of the disk."""
         r = np.sqrt(x**2+y**2)
         if r == 0:
             costheta = 0
@@ -781,7 +767,9 @@ class DustEllipticalDistribution2PowerLaws:
 
 
 class Phase_function(object):
-    """ This class represents the scattering phase function (spf).
+    """
+    Class representing the scattering phase function (spf).
+
     It contains the attribute phase_function_calc that implements either a
     single Henyey Greenstein phase function, a double Heyney Greenstein,
     or any custom function (data interpolated from
@@ -790,8 +778,10 @@ class Phase_function(object):
 
     def __init__(self, spf_dico={'name': 'HG', 'g': 0., 'polar': False}):
         """
-        Constructor of the Phase_function class. It checks whether the spf_dico
-        contains a correct name and sets the attribute phase_function_calc
+        Construct the Phase_function class.
+
+        It checks whether the spf_dico contains a correct name and sets the
+        attribute phase_function_calc.
 
         Parameters
         ----------
@@ -803,11 +793,13 @@ class Phase_function(object):
             'interpolated' (custom function).
             The parameter "polar" enables to switch on the polarisation (if set
             to True, the default is False). In this case it assumes either
-                - a Rayleigh polarised fraction (1-(cos phi)^2) / (1+(cos phi)^2).
+                - a Rayleigh polarised fraction
+                  (1-(cos phi)^2) / (1+(cos phi)^2).
                   if nothing else is specified
                 - a polynomial if the keyword 'polar_polynom_coeff' is defined
                   and corresponds to an array of polynomial coefficient, e.g.
-                  [p3,p2,p1,p0] evaluated as np.polyval([p3,p2,p1,p0],np.arange(0, 180, 1))
+                  [p3,p2,p1,p0] evaluated as:
+                  np.polyval([p3,p2,p1,p0],np.arange(0, 180, 1))
         """
         if not isinstance(spf_dico, dict):
             msg = 'The parameters describing the phase function must be a ' \
@@ -832,8 +824,8 @@ class Phase_function(object):
                               (tuple, list, np.ndarray)):
                     self.polar_polynom_coeff = spf_dico['polar_polynom_coeff']
                 else:
-                    msg = 'The dictionnary describing the polarisation polynomial function must be an ' \
-                          'array'
+                    msg = 'The dictionnary describing the polarisation ' \
+                          'polynomial function must be an array.'
                     raise TypeError(msg)
             else:
                 self.polar_polynom = False
@@ -849,8 +841,9 @@ class Phase_function(object):
 
     def compute_phase_function_from_cosphi(self, cos_phi):
         """
-        Compute the phase function at (a) specific scattering scattering
-        angle(s) phi. The argument is not phi but cos(phi) for optimization
+        Compute the phase function at (a) specific scattering angle(s) phi.
+
+        The argument is not phi but cos(phi) for optimization
         reasons.
 
         Parameters
@@ -871,10 +864,8 @@ class Phase_function(object):
             return phf
 
     def print_info(self):
-        """
-        Prints information on the type and parameters of the scattering phase
-        function.
-        """
+        """Print information on the type and parameters of the scattering phase\
+        function."""
         print('----------------------------')
         print('Phase function parameters')
         print('----------------------------')
@@ -883,9 +874,7 @@ class Phase_function(object):
         self.phase_function_calc.print_info()
 
     def plot_phase_function(self):
-        """
-        Plots the scattering phase function
-        """
+        """Plot the scattering phase function."""
         phi = np.arange(0, 180, 1)
         phase_func = self.compute_phase_function_from_cosphi(
             np.cos(np.deg2rad(phi)))
@@ -908,14 +897,12 @@ class Phase_function(object):
 
 
 class HenyeyGreenstein_SPF(object):
-    """
-    Implementation of a scattering phase function with a single Henyey
-    Greenstein function.
-    """
+    """Implementation of a scattering phase function with a single Henyey\
+    Greenstein function."""
 
     def __init__(self, spf_dico={'g': 0.}):
         """
-        Constructor of a Heyney Greenstein phase function.
+        Construct a Heyney Greenstein phase function.
 
         Parameters
         ----------
@@ -934,9 +921,7 @@ class HenyeyGreenstein_SPF(object):
         self.set_phase_function(spf_dico['g'])
 
     def set_phase_function(self, g):
-        """
-        Set the value of g
-        """
+        """Set the value of g."""
         if g >= 1:
             print('Warning the Henyey Greenstein parameter is greater than or '
                   'equal to 1')
@@ -951,8 +936,9 @@ class HenyeyGreenstein_SPF(object):
 
     def compute_phase_function_from_cosphi(self, cos_phi):
         """
-        Compute the phase function at (a) specific scattering scattering
-        angle(s) phi. The argument is not phi but cos(phi) for optimization
+        Compute the phase function at (a) specific scattering angle(s) phi.
+
+        The argument is not phi but cos(phi) for optimization
         reasons.
 
         Parameters
@@ -965,21 +951,16 @@ class HenyeyGreenstein_SPF(object):
             (1+self.g**2-2*self.g*cos_phi)**(3./2.)
 
     def print_info(self):
-        """
-        Prints the value of the HG coefficient
-        """
+        """Print the value of the HG coefficient."""
         print('Heynyey Greenstein coefficient: {0:.2f}'.format(self.g))
 
 
 class DoubleHenyeyGreenstein_SPF(object):
-    """
-    Implementation of a scattering phase function with a double Henyey
-    Greenstein function.
-    """
+    """Implementation of a scattering phase function with a double Henyey\
+    Greenstein function."""
 
     def __init__(self, spf_dico={'g': [0.5, -0.3], 'weight': 0.7}):
-        """
-        """
+        """Construct a double Heyney Greenstein phase function."""
         # it must contain the key "g"
         if 'g' not in spf_dico.keys():
             raise TypeError('The dictionnary describing a Heyney Greenstein'
@@ -1010,9 +991,7 @@ class DoubleHenyeyGreenstein_SPF(object):
         self.weight = spf_dico['weight']
 
     def print_info(self):
-        """
-        Prints the value of the HG coefficients and weights
-        """
+        """Print the value of the HG coefficients and weights."""
         print('Heynyey Greenstein first component : coeff {0:.2f} , '
               'weight {1:.1f}%'.format(self.g[0], self.weight*100))
         print('Heynyey Greenstein second component: coeff {0:.2f} , '
@@ -1020,9 +999,10 @@ class DoubleHenyeyGreenstein_SPF(object):
 
     def compute_singleHG_from_cosphi(self, g, cos_phi):
         """
-        Compute a single Heyney Greenstein phase function at (a) specific
-        scattering scattering angle(s) phi. The argument is not phi but cos(phi)
-        for optimization reasons.
+        Compute a single Heyney Greenstein phase function at (a) specific\
+        scattering angle(s) phi.
+
+        The argument is not phi but cos(phi) for optimization reasons.
 
         Parameters
         ----------
@@ -1036,9 +1016,9 @@ class DoubleHenyeyGreenstein_SPF(object):
 
     def compute_phase_function_from_cosphi(self, cos_phi):
         """
-        Compute the phase function at (a) specific scattering scattering
-        angle(s) phi. The argument is not phi but cos(phi) for optimization
-        reasons.
+        Compute the phase function at (a) specific scattering angle(s) phi.
+
+        The argument is not phi but cos(phi) for optimization reasons.
 
         Parameters
         ----------
@@ -1053,10 +1033,9 @@ class DoubleHenyeyGreenstein_SPF(object):
 
 
 class Interpolated_SPF(object):
-    """
-    Custom implementation of a scattering phase function by providing a list of
-    scattering phase angles and corresponding values of the phase function.
-    """
+    """Custom implementation of a scattering phase function by providing a list\
+        of scattering phase angles and corresponding values of the phase \
+        function."""
 
     def __init__(self, spf_dico={'phi': np.array([0, 18, 36, 54, 72, 90,
                                                   108, 126, 144, 162]),
@@ -1064,17 +1043,18 @@ class Interpolated_SPF(object):
                                                  0.0233, 0.0136, 0.0091, 0.0069,
                                                  0.0056, 0.005])}):
         """
-        Constructor of the Interpolated_SPF class. It checks whether the spf_dico
-        contains the keys 'phi' and 'spf'
+        Construct the Interpolated_SPF class.
+
+        It checks whether the spf_dico contains the keys 'phi' and 'spf'
 
         Parameters
         ----------
         spf_dico :  dict
-            dictionnary containing at least the keys "phi" (list of scattering angles)
-            and "spf" (list of corresponding scattering phase function values)
-            Optionnaly it can specify the kind of interpolation requested (as
-            specified by the scipy.interpolate.interp1d function), by default
-            it uses a quadratic interpolation.
+            dictionnary containing at least the keys "phi" (list of scattering
+            angles) and "spf" (list of corresponding scattering phase function
+            values). Optionally it can specify the kind of interpolation
+            requested (as specified by the scipy.interpolate.interp1d function),
+            by default it uses a quadratic interpolation.
         """
         for key in ['phi', 'spf']:
             if key not in spf_dico.keys():
@@ -1091,56 +1071,55 @@ class Interpolated_SPF(object):
         self.interpolate_phase_function(spf_dico)
 
     def print_info(self):
-        """
-        Prints the information of the spf
-        """
+        """Print the information of the spf."""
         phi = np.linspace(0, 180, 19)
         spf = self.compute_phase_function_from_cosphi(np.cos(np.deg2rad(phi)))
         print('Scattering angle: ', phi)
         print('Interpolated scattering phase function: ', spf)
 
     def interpolate_phase_function(self, spf_dico):
-        """
-        Creates the function that returns the scattering phase function based
-        on the scattering angle by interpolating the values given in the
-        dictionnary. By default it uses a quadractic interpolation.
+        """Create the function that returns the scattering phase function based\
+        on the scattering angle by interpolating the values given in the\
+        dictionnary.
+
+        By default it uses a quadractic interpolation.
 
         Parameters
         ----------
         spf_dico :  dict
-            dictionnary containing at least the keys "phi" (list of scattering angles)
-            and "spf" (list of corresponding scattering phase function values)
-            Optionnaly it can specify the kind of interpolation requested (as
-            specified by the scipy.interpolate.interp1d function), by default
-            it uses a quadratic interpolation.
-            best_spf_interp_pchip = PchipInterpolator(scat_angles,best_spf)(phi)    
+            dictionnary containing at least the keys "phi" (list of scattering
+            angles) and "spf" (list of corresponding scattering phase function
+            values). Optionally it can specify the kind of interpolation
+            requested (as specified by the scipy.interpolate.interp1d function),
+            by default it uses a quadratic interpolation.
+            best_spf_interp_pchip = PchipInterpolator(scat_angles,best_spf)(phi)
 
         """
         if 'kind' in spf_dico.keys():
-            if not isinstance(spf_dico['kind'], int) and spf_dico['kind'] not in \
-                ['linear', 'nearest', 'zero', 'slinear',
-                 'quadratic', 'cubic', 'previous', 'next']:
+            if not isinstance(spf_dico['kind'], int) and \
+                spf_dico['kind'] not in ['linear', 'nearest', 'zero', 'slinear',
+                                         'quadratic', 'cubic', 'previous',
+                                         'next']:
                 raise TypeError('The key "{0:s}" must be an integer '
-                                'or a string ("linear", "nearest", "zero", "slinear", '
-                                '"quadratic", "cubic", "previous",'
+                                'or a string ("linear", "nearest", "zero", '
+                                '"slinear", "quadratic", "cubic", "previous",'
                                 '"next" or "pchip")'.format(spf_dico['kind']))
             else:
                 kind = spf_dico['kind']
         else:
             kind = 'pchip'
             # by default, we use pchip for interpolation
-            interp_func = PchipInterpolator(spf_dico['phi'],spf_dico['spf'])
+            interp_func = PchipInterpolator(spf_dico['phi'], spf_dico['spf'])
         if kind != 'pchip':
-            interp_func = interp1d(spf_dico['phi'],spf_dico['spf'], kind=kind,
-                                                   bounds_error=False,
-                                                   fill_value=np.nan)
+            interp_func = interp1d(spf_dico['phi'], spf_dico['spf'], kind=kind,
+                                   bounds_error=False, fill_value=np.nan)
 
         self.interpolation_function = interp_func
 
     def compute_phase_function_from_cosphi(self, cos_phi):
-        """
-        Compute the phase function at (a) specific scattering scattering
-        angle(s) phi. The argument is not phi but cos(phi) for optimization
+        """Compute the phase function at (a) specific scattering angle(s) phi.
+
+        The argument is not phi but cos(phi) for optimization
         reasons.
 
         Parameters
@@ -1162,53 +1141,53 @@ if __name__ == '__main__':
     #            inner and outer slopes 2 and -5, inclined by 70degrees wrt
     #            the line of sight and with a PA of 45degrees, an isotropic
     #            phase function
-    Scattered_light_disk1 = ScatteredLightDisk(nx=201, ny=201, distance=20,
-                                               itilt=70., omega=0.,
-                                               pxInArcsec=0.01225, pa=45.,
-                                               density_dico={'name': '2PowerLaws',
-                                                             'ain': 5, 'aout': -5,
-                                                             'a': 40, 'e': 0,
-                                                             'ksi0': 1.,
-                                                             'gamma': 2.,
-                                                             'beta': 1.},
-                                               spf_dico={'name': 'HG', 'g': 0.,
-                                                         'polar': False})
-    disk1 = Scattered_light_disk1.compute_scattered_light()
+    Scatt_light_disk1 = ScatteredLightDisk(nx=201, ny=201, distance=20,
+                                           itilt=70., omega=0.,
+                                           pxInArcsec=0.01225, pa=45.,
+                                           density_dico={'name': '2PowerLaws',
+                                                         'ain': 5, 'aout': -5,
+                                                         'a': 40, 'e': 0,
+                                                         'ksi0': 1.,
+                                                         'gamma': 2.,
+                                                         'beta': 1.},
+                                           spf_dico={'name': 'HG', 'g': 0.,
+                                                     'polar': False})
+    disk1 = Scatt_light_disk1.compute_scattered_light()
 
     # If you prefer set the parameters in differen steps, you can also do that
     # with: (this is identical)
-    Scattered_light_disk1 = ScatteredLightDisk(nx=201, ny=201, distance=20)
-    Scattered_light_disk1.set_pa(45)
-    Scattered_light_disk1.set_inclination(70)
-    Scattered_light_disk1.set_density_distribution({'name': '2PowerLaws',
-                                                    'ain': 2, 'aout': -5, 'a': 20,
-                                                    'e': 0, 'ksi0': 1.,
-                                                    'gamma': 2., 'beta': 1.})
-    Scattered_light_disk1.set_phase_function(
+    Scatt_light_disk1 = ScatteredLightDisk(nx=201, ny=201, distance=20)
+    Scatt_light_disk1.set_pa(45)
+    Scatt_light_disk1.set_inclination(70)
+    Scatt_light_disk1.set_density_distribution({'name': '2PowerLaws',
+                                                'ain': 2, 'aout': -5, 'a': 20,
+                                                'e': 0, 'ksi0': 1.,
+                                                'gamma': 2., 'beta': 1.})
+    Scatt_light_disk1.set_phase_function(
         {'name': 'HG', 'g': 0., 'polar': False})
-    disk1 = Scattered_light_disk1.compute_scattered_light()
+    disk1 = Scatt_light_disk1.compute_scattered_light()
 
     # If you want to know what are the parameters you set for your disk:
-    Scattered_light_disk1.print_info()
+    Scatt_light_disk1.print_info()
 
     # Example 2: Creation of a disk similar to example 1 but with a double
     #           Heyney Greenstein phase function
 
-    Scattered_light_disk2 = ScatteredLightDisk(nx=201, ny=201, distance=20)
-    Scattered_light_disk2.set_pa(45)
-    Scattered_light_disk2.set_inclination(70)
-    Scattered_light_disk2.set_density_distribution({'name': '2PowerLaws',
-                                                    'ain': 2, 'aout': -5, 'a': 20,
-                                                    'e': 0, 'ksi0': 1.,
-                                                    'gamma': 2., 'beta': 1.})
-    Scattered_light_disk2.set_phase_function({'name': 'DoubleHG',
-                                              'g': [0.6, -0.6], 'weight': 0.7,
-                                              'polar': False})
-    Scattered_light_disk2.print_info()
-    disk2 = Scattered_light_disk2.compute_scattered_light()
+    Scatt_light_disk2 = ScatteredLightDisk(nx=201, ny=201, distance=20)
+    Scatt_light_disk2.set_pa(45)
+    Scatt_light_disk2.set_inclination(70)
+    Scatt_light_disk2.set_density_distribution({'name': '2PowerLaws',
+                                                'ain': 2, 'aout': -5, 'a': 20,
+                                                'e': 0, 'ksi0': 1.,
+                                                'gamma': 2., 'beta': 1.})
+    Scatt_light_disk2.set_phase_function({'name': 'DoubleHG',
+                                          'g': [0.6, -0.6], 'weight': 0.7,
+                                          'polar': False})
+    Scatt_light_disk2.print_info()
+    disk2 = Scatt_light_disk2.compute_scattered_light()
 
     # Let's turn the polarisation on now:
-    Scattered_light_disk2.set_phase_function({'name': 'DoubleHG',
-                                              'g': [0.6, -0.6], 'weight': 0.7,
-                                              'polar': True})
-    disk2_polar = Scattered_light_disk2.compute_scattered_light()
+    Scatt_light_disk2.set_phase_function({'name': 'DoubleHG',
+                                          'g': [0.6, -0.6], 'weight': 0.7,
+                                          'polar': True})
+    disk2_polar = Scatt_light_disk2.compute_scattered_light()

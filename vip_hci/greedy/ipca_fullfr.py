@@ -79,13 +79,14 @@ class IPCA_Params(PCA_Params):
 
     mode: str = None
     strategy: str = "ADI"
+    ncomp_start: int = 1
     ncomp_step: int = 1
     nit: int = 1
     thr: Union[float, str] = 0.
     thr_mode: str = 'STIM'
     r_out: float = None
     r_max: float = None
-    smooth_ker: Union[float, List] = None
+    smooth_ker: Union[float, List, np.ndarray] = None
     rtol: float = 1e-2
     atol: float = 1e-2
     continue_without_smooth_after_conv: bool = False
@@ -133,32 +134,42 @@ def ipca(*all_args: List, **all_kwargs: dict):
         to get the scaling factors). This scaling factors are used to re-scale
         the spectral channels and align the speckles.
     mode: str or None, opt {'Pairet18', 'Pairet21','Christiaens24','Juillard23'}
-        - If None: runs with provided value of 'n_comp' for 'nit' iterations,
-        and considering threshold 'thr'.
-        - If 'Pairet18': runs for n_comp iterations, with n_comp=1,...,n_comp,
-        at each iteration (if `nit` is provided it is ignored). thr set to 0
-        (ignored if provided).
-        - If 'Pairet21': runs with n_comp=1,...,n_comp, and nit times for each
-        n_comp (i.e. outer loop on n_comp, inner loop on nit). thr set to 0
-        (ignored if provided). 'thr' parameter discarded, always set to 0.
-        - If 'Christiaens24': same as 'Pairet21', but with 'thr' parameter used.
+        Whether to run IPCA with fixed (mode=None) or incremental number of PCs
+        (mode != None) as the iterations progress.
+        - If None: runs with provided value of ``ncomp`` for ``nit`` iterations,
+        and considering threshold ``thr``.
+        - If 'Pairet18': runs for ``ncomp`` iterations with incremental n_PCs:
+        n_PCs=1,...,``ncomp`` for the different iterations. If `nit` is provided
+        it is ignored. ``thr`` is set to 0 and ``ncomp_start`` to 1 (they are
+        ignored if provided).
+        - If 'Pairet21': runs incrementally with n_PCs=1,...,``ncomp``, and
+        ``nit`` times for each n_PCs value (i.e. outer loop on n_PCs, inner loop
+        on ``nit``). `thr`` is set to 0 and ``ncomp_start`` to 1 (they are
+        ignored if provided).
+        - If 'Christiaens24': same as 'Pairet21', but with 'ncomp_start' and
+        'thr' parameters taken into account.
         - If 'Juillard23': Exact implementation from Juillard et al. 2023 using
-        Torch. Parameter conventions are the same as in 'Christiaens24' and
-        'Pairet21'. This method has no additional options for significant
+        Torch. Parameter conventions are the same as in 'Christiaens24'.
+        This method has no additional options for significant
         signal extraction and works exclusively with Torch, making it faster
         but also more prone to propagate noise and disk flux. Installation of
         the GreeDS package is required for this option.
-    ncomp : int or tuple/list of int, optional
+    ncomp : int or tuple/list of 2 int, optional
         How many PCs are used as a lower-dimensional subspace to project the
         target frames.
         - if mode is None:
-            * ADI or RDI: if an int is provided, ``ncomp`` is the number of PCs
-            extracted from ``cube`` itself.
+            * ADI or RDI: an int must be provided, ``ncomp`` is the fixed number
+            of PCs to use.
             * RADI: can be a list/tuple of 2 elements corresponding to the ncomp
               to be used for RDI and then ADI.
          - if mode is not None:
              ncomp should correspond to the maximum number of principal
              components to be tested. The increment will be ncomp_step.
+    ncomp_start: int, opt
+        For incremental versions of iterative PCA (- if mode is 'Pairet21'), this is the number of
+        principal components at the first iteration (by default 1). In some
+        cases, it is better to increase it to avoid propagating circular
+        artefacts (see [JUI24]).
     ncomp_step: int, opt
         Incremental step for number of principal components - used when mode is
         not None.
@@ -293,10 +304,11 @@ def ipca(*all_args: List, **all_kwargs: dict):
         Absolute tolerance threshold element-wise in the significant signal
         image compared to the same image obtained either 1 or 2 iterations
         before, to consider convergence [more details in np.allclose].
-    smooth_ker: None or float or list/1darray of floats, optional
-        If not None, size in pixels of the Gaussian kernel to use on
+    smooth_ker: None or float or list/1darray of floats or 2darray, optional
+        If a float: size in pixels of the Gaussian kernel to use on
         post-processed image obtained at each iteration to include the expected
-        spatial correlation of neighbouring pixels. Default is to consider a
+        spatial correlation of neighbouring pixels. If a 2D numpy array: the
+        normalized PSF to use for convolution. Default is to consider a
         kernel size of 1 pixel. If a list/1d array, length should be equal to
         the number of iterations. Depending on your data, starting with a
         larger kernel (e.g. FWHM/2) and progressively decreasing it with
@@ -360,9 +372,13 @@ def ipca(*all_args: List, **all_kwargs: dict):
                                      fillwith=np.nan, mode='out')
             frame_mask2 = mask_circle(array, radius=mask_center_sz,
                                       fillwith=np.nan, mode='out')
-            frame_filt = frame_filter_lowpass(frame_mask, mode='gauss',
-                                              fwhm_size=fwhm_sz,
-                                              iterate=False)
+            if np.isscalar(fwhm_sz):
+                frame_filt = frame_filter_lowpass(frame_mask, mode='gauss',
+                                                  fwhm_size=fwhm_sz,
+                                                  iterate=False)
+            elif fwhm_sz.ndim == 2:  # if a psf
+                frame_filt = frame_filter_lowpass(frame_mask, psf=fwhm_sz,
+                                                  iterate=False)
             nonan_loc = np.where(np.isfinite(frame_mask2))
             array[nonan_loc] = frame_filt[nonan_loc]
         else:
@@ -400,6 +416,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
     pca_params['verbose'] = False  # too verbose otherwise
     r = algo_params.ncomp
     l = algo_params.nit
+    r_start = algo_params.ncomp_start
 
     if algo_params.mode == "Juillard23":
         if no_greeds:
@@ -421,12 +438,13 @@ def ipca(*all_args: List, **all_kwargs: dict):
         if algo_params.full_output is True:
             it_cube, star_estim = GreeDS(algo_params.cube,
                                          algo_params.angle_list,
-                                         refs=ref, r=r, l=l, r_start=1, pup=pup,
-                                         full_output=1, returnL=True)
+                                         refs=ref, r=r, l=l, r_start=r_start,
+                                         pup=pup, full_output=True,
+                                         returnL=True)
         else:
             it_cube = GreeDS(algo_params.cube, algo_params.angle_list,
-                             refs=ref, r=r, l=l, r_start=1, pup=pup,
-                             full_output=1, returnL=False)
+                             refs=ref, r=r, l=l, r_start=r_start, pup=pup,
+                             full_output=True, returnL=False)
         frame = it_cube[-1]
 
         # Set results matching full outputs
@@ -527,24 +545,31 @@ def ipca(*all_args: List, **all_kwargs: dict):
             raise TypeError("ncomp should be float, int, tuple or list")
 
         ncomp_tmp = ncomp_list[0]
+        ncomp_start = algo_params.ncomp_start
+        ncomp_step = algo_params.ncomp_step
         nframes = algo_params.cube.shape[0]
         nit_ori = algo_params.nit
 
         if algo_params.mode is not None:
-            final_ncomp = list(range(1, ncomp_tmp+1, algo_params.ncomp_step))
             if algo_params.mode == 'Pairet18':
                 algo_params.nit = ncomp_tmp
-                final_ncomp = list(range(1, ncomp_tmp+1,
-                                         algo_params.ncomp_step))
+                final_ncomp = list(range(1, ncomp_tmp+1, ncomp_step))
                 algo_params.thr = 0
-            elif algo_params.mode in ['Pairet21', 'Christiaens24']:
+            elif algo_params.mode == 'Pairet21':
                 final_ncomp = []
-                for npc in range(1, ncomp_tmp+1, algo_params.ncomp_step):
+                for npc in range(1, ncomp_tmp+1, ncomp_step):
                     for ii in range(algo_params.nit):
                         final_ncomp.append(npc)
                 algo_params.nit = len(final_ncomp)
-                if algo_params.mode == 'Pairet21':
-                    algo_params.thr = 0
+                algo_params.thr = 0
+            elif algo_params.mode == 'Christiaens24':
+                final_ncomp = []
+                for npc in range(ncomp_start, ncomp_tmp+1, ncomp_step):
+                    for ii in range(algo_params.nit):
+                        final_ncomp.append(npc)
+                algo_params.nit = len(final_ncomp)
+            else:
+                raise ValueError("mode is not recognized.")
         else:
             final_ncomp = [ncomp_tmp]*algo_params.nit
 
@@ -570,8 +595,8 @@ def ipca(*all_args: List, **all_kwargs: dict):
         residuals_cube_ = res[-1]
         # smoothing and manual derotation if requested
         smooth_ker = algo_params.smooth_ker
-        if smooth_ker is None or np.isscalar(smooth_ker):
-            smooth_ker = np.array([smooth_ker]*algo_params.nit, dtype=object)
+        if smooth_ker is None or np.isscalar(smooth_ker) or smooth_ker.ndim == 2:
+            smooth_ker = [smooth_ker]*algo_params.nit
         else:
             smooth_ker = np.array(smooth_ker, dtype=object)
         # if smooth_ker[0] is not None:
@@ -583,7 +608,10 @@ def ipca(*all_args: List, **all_kwargs: dict):
         #                                     nproc=algo_params.nproc)
         #     frame = cube_collapse(residuals_cube_, algo_params.collapse)
         if smooth_ker[0] is not None:
-            frame = frame_filter_lowpass(frame, fwhm_size=smooth_ker[0])
+            if np.isscalar(smooth_ker[0]):
+                frame = frame_filter_lowpass(frame, fwhm_size=smooth_ker[0])
+            elif smooth_ker[0].ndim == 2:
+                frame = frame_filter_lowpass(frame, psf=smooth_ker[0])
 
         # 3. Identify significant signals with STIM map
         it_cube = np.zeros([algo_params.nit, frame.shape[0], frame.shape[1]])
@@ -652,7 +680,10 @@ def ipca(*all_args: List, **all_kwargs: dict):
                 # Run PCA on original cube
                 # Update PCA PARAMS
                 pca_params['cube'] = algo_params.cube
-                pca_params['cube_ref'] = ref_cube
+                if algo_params.strategy == 'ADI':
+                    pca_params['cube_ref'] = None
+                else:
+                    pca_params['cube_ref'] = ref_cube
                 pca_params['ncomp'] = final_ncomp[it]
                 pca_params['scaling'] = algo_params.scaling
                 pca_params['cube_sig'] = sig_cube
@@ -729,18 +760,21 @@ def ipca(*all_args: List, **all_kwargs: dict):
                     cond_it = (it % nit_ori != nit_ori-1)
                     if cond_mod and cond_it:
                         cond_skip = True
-                    else:
+                    elif cond_mod:  # in incremental mode don't skip if cond_it
+                        cond_skip = False
+                    else:  # else in non-incremental mode: break or don't smooth
                         cond_skip = False
                         condc = algo_params.continue_without_smooth_after_conv
                         msg = "Convergence criterion met after {} iterations"
                         msg2 = "...Smoothing turned off and iterating more"
                         if algo_params.strategy in ['ADI', 'RDI', 'ARDI']:
                             if smooth_ker[it] is not None and condc:
-                                smooth_ker[it+1:] = None
+                                smooth_ker_N = [None]*(len(smooth_ker)-it-1)
+                                smooth_ker[it+1:] = smooth_ker_N
                                 if algo_params.verbose:
                                     print(msg.format(it)+msg2)
                             else:
-                                if algo_params.verbose:
+                                if algo_params.verbose and not cond_it:
                                     print("Final " + msg.format(it))
                                 break
                     if algo_params.strategy == 'RADI':

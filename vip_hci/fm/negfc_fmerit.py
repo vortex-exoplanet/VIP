@@ -621,7 +621,7 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
                      cube_ref=None, wedge=None, svd_mode="lapack", scaling=None,
                      algo=pca_annulus, delta_rot=1, imlib="vip-fft",
                      interpolation="lanczos4", collapse="median", weights=None,
-                     algo_options={}, bin_spec=False):
+                     algo_options={}, bin_spec=False, verbose=False):
     """Extract the mean and standard deviation of pixel intensities in an\
     annulus of the PCA-ADI image obtained with 'algo', in the part of a defined\
     wedge that is not overlapping with PA_pl+-delta_PA.
@@ -648,7 +648,7 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
         The angular position of the center of the circular aperture. This
         parameter is NOT the angular position of the candidate associated to the
         Markov chain, but should be the fixed initial guess.
-    f_guess: float, optional
+    f_guess: float or 1d numpy array, optional
         The flux estimate for the companion.
     psfn: 2D or 3D numpy ndarray, optional
         Normalized psf used to remove the companion if f_guess is provided.
@@ -721,15 +721,23 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
 
     """
     if f_guess is not None and psfn is not None:
-        planet_parameter = (r_guess, theta_guess, f_guess)
+        if np.isscalar(f_guess):
+            planet_parameter = (r_guess, theta_guess, f_guess)
+        elif len(f_guess) == 1:
+            planet_parameter = (r_guess, theta_guess, f_guess[0])
+        else:
+            r_all = [r_guess]*len(f_guess)
+            theta_all = [r_guess]*len(f_guess)
+            planet_parameter = np.array([r_all, theta_all, f_guess])
         array = cube_planet_free(planet_parameter, cube, angs, psfn,
                                  imlib=imlib, interpolation=interpolation,
                                  transmission=None)
     else:
-        msg = "WARNING: f_guess not provided. The companion will not be "
-        msg += "removed from the cube before estimating mu and sigma. "
-        msg += "A wedge will be used"
-        print(msg)
+        if verbose:
+            msg = "WARNING: f_guess not provided. The companion will not be "
+            msg += "removed from the cube before estimating mu and sigma. "
+            msg += "A wedge will be used"
+            print(msg)
         array = cube.copy()
 
     centy_fr, centx_fr = frame_center(array[0])

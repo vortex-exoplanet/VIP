@@ -140,7 +140,7 @@ def fmmf(*all_args, **all_kwargs: dict):
         size of the image minus half the value of the 'crop' parameter.
         Default is None which corresponds to half the size of the image
         minus half the value of the 'crop' parameter.
-    model: string, optional
+    model: string, optional, {'KLIP', 'LOCI'}
         Selected PSF-subtraction technique for the computation of the FMMF
         detection map. FMMF work either with KLIP or LOCI. Default is 'KLIP'.
     var: Enum, see `vip_hci.config.paramenum.VarEstim`
@@ -277,7 +277,6 @@ def _snr_contrast_esti(
     ind_ref_list = None
     coef_list = None
 
-    ncomp = param["ncomp"]
     tolerance = param["tolerance"]
     delta_rot = param["delta_rot"]
 
@@ -291,6 +290,7 @@ def _snr_contrast_esti(
         pa_threshold = float(mid_range - mid_range * 0.1)
 
     if model == "KLIP":
+        ncomp = param["ncomp"]
         resicube_klip = np.zeros_like(cube)
 
         indices = get_annulus_segments(
@@ -346,8 +346,8 @@ def _snr_contrast_esti(
     indicesy = indices[0][0]
     indicesx = indices[0][1]
 
-    flux_esti = np.zeros_like(indicesy)
-    prob_esti = np.zeros_like(indicesy)
+    flux_esti = np.zeros(indicesy.shape)
+    prob_esti = np.zeros(indicesy.shape)
 
     var_f = _var_esti(mcube, angle_list, var, crop, ann_center)
 
@@ -709,7 +709,9 @@ def KLIP_patch(frame, matrix, numbasis, angle_list, fwhm, pa_threshold,
             indices_left = _find_indices_adi(
                 angle_list, frame, pa_threshold, truncate=False, nframes=nframes
             )
-
+        if len(indices_left) == 0:
+            msg = "No frame index left matching pa threshold. Reduce delta_rot."
+            raise ValueError(msg)
         refs = matrix[indices_left]
 
     else:

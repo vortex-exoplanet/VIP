@@ -17,7 +17,7 @@ The concept was proposed in [HEA00]_ for application to HST/NICMOS observations.
 """
 
 __author__ = "Valentin Christiaens"
-__all__ = ["iroll_sub"]
+__all__ = ["iroll"]
 
 import numpy as np
 from dataclasses import dataclass
@@ -47,7 +47,7 @@ class IROLL_SUB_Params(ROLL_SUB_Params):
     r_max: float = None
 
 
-def iroll_sub(*all_args: List, **all_kwargs: dict):
+def iroll(*all_args: List, **all_kwargs: dict):
     """
     Perform iterative roll-subtraction, followed by derotation and stacking of\
     residual images.

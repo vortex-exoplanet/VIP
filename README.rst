@@ -170,7 +170,7 @@ out or a bug is fixed:
 
 .. code-block:: bash
 
-   git add remote upstream https://github.com/vortex-exoplanet/VIP.git
+   git remote add upstream https://github.com/vortex-exoplanet/VIP.git
 
 If you plan to develop VIP or use it intensively, it is highly recommended to
 also install the optional dependencies listed below.

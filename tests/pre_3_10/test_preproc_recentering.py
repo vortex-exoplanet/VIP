@@ -32,7 +32,7 @@ from vip_hci.var import frame_center, fit_2dgaussian
 mpl.use("Agg")
 
 try:
-    from IPython.core.display import display, HTML
+    from IPython.display import display, HTML
 
     def html(s):
         display(HTML(s))

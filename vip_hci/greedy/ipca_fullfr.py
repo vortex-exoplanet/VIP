@@ -769,7 +769,8 @@ def ipca(*all_args: List, **all_kwargs: dict):
                         msg2 = "...Smoothing turned off and iterating more"
                         if algo_params.strategy in ['ADI', 'RDI', 'ARDI']:
                             if smooth_ker[it] is not None and condc:
-                                smooth_ker[it+1:] = None
+                                smooth_ker_N = [None]*(len(smooth_ker)-it-1)
+                                smooth_ker[it+1:] = smooth_ker_N
                                 if algo_params.verbose:
                                     print(msg.format(it)+msg2)
                             else:

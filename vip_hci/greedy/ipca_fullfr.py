@@ -595,10 +595,19 @@ def ipca(*all_args: List, **all_kwargs: dict):
         residuals_cube_ = res[-1]
         # smoothing and manual derotation if requested
         smooth_ker = algo_params.smooth_ker
-        if smooth_ker is None or np.isscalar(smooth_ker) or smooth_ker.ndim == 2:
+        if smooth_ker is None or np.isscalar(smooth_ker):
+            smooth_ker = [smooth_ker]*algo_params.nit
+        elif len(smooth_ker) == algo_params.nit:
+            smooth_ker = np.array(smooth_ker, dtype=object)
+        elif smooth_ker.ndim == 2:
             smooth_ker = [smooth_ker]*algo_params.nit
         else:
-            smooth_ker = np.array(smooth_ker, dtype=object)
+            if len(smooth_ker) != algo_params.nit:
+                msg = "If a 1d array or list, smooth_ker should have nit length"
+                raise TypeError(msg)
+            else:
+                msg = "Type not recognized for smooth_ker"
+                raise TypeError(msg)
         # if smooth_ker[0] is not None:
         #     residuals_cube = _blurring_3d(residuals_cube, None,
         #                                   fwhm_sz=smooth_ker[0])
@@ -766,7 +775,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
                         cond_skip = False
                         condc = algo_params.continue_without_smooth_after_conv
                         msg = "Convergence criterion met after {} iterations"
-                        msg2 = "...Smoothing turned off and iterating more"
+                        msg2 = "... Smoothing turned off and iterating more. "
                         if algo_params.strategy in ['ADI', 'RDI', 'ARDI']:
                             if smooth_ker[it] is not None and condc:
                                 smooth_ker_N = [None]*(len(smooth_ker)-it-1)
@@ -774,8 +783,8 @@ def ipca(*all_args: List, **all_kwargs: dict):
                                 if algo_params.verbose:
                                     print(msg.format(it)+msg2)
                             else:
-                                if algo_params.verbose and not cond_it:
-                                    print("Final " + msg.format(it))
+                                if algo_params.verbose:  # and not cond_it:
+                                    print("Final " + msg.format(it) + "in ")
                                 break
                     if algo_params.strategy == 'RADI':
                         # continue to iterate with ADI

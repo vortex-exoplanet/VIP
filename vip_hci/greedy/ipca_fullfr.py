@@ -51,7 +51,7 @@ import numpy as np
 from typing import Union, List
 from ..config.paramenum import ALGO_KEY
 from ..config.utils_param import separate_kwargs_dict
-from ..config import Progressbar
+from ..config import Progressbar, timing, time_ini
 from ..psfsub import pca, PCA_Params
 from ..preproc import cube_derotate, cube_collapse
 from ..metrics import stim_map, inverse_stim_map
@@ -89,6 +89,7 @@ class IPCA_Params(PCA_Params):
     smooth_ker: Union[float, List, np.ndarray] = None
     rtol: float = 1e-2
     atol: float = 1e-2
+    add_nd_excess: bool = False
     continue_without_smooth_after_conv: bool = False
 
 
@@ -411,6 +412,8 @@ def ipca(*all_args: List, **all_kwargs: dict):
 
     if algo_params is None:
         algo_params = IPCA_Params(*all_args, **class_params)
+
+    start_time = time_ini(algo_params.verbose)
 
     # force full_output
     pca_params['full_output'] = True
@@ -737,6 +740,12 @@ def ipca(*all_args: List, **all_kwargs: dict):
                     frame_nd = cube_collapse(residuals_cube_nd_,
                                              algo_params.collapse)
 
+                # also add significant signals from frame_nd, if requested
+                if algo_params.add_nd_excess:
+                    sig_mask_nd = np.ones_like(frame_nd)
+                    sig_mask_nd[np.where(frame_nd < algo_params.thr)] = 0
+                    frame += frame_nd*sig_mask_nd
+
                 if algo_params.thr_mode == 'STIM':
                     res = _find_significant_signals(residuals_cube_nd,
                                                     residuals_cube_,
@@ -784,17 +793,20 @@ def ipca(*all_args: List, **all_kwargs: dict):
                     else:  # else in non-incremental mode: break or don't smooth
                         cond_skip = False
                         condc = algo_params.continue_without_smooth_after_conv
-                        msg = "Convergence criterion met after {} iterations"
-                        msg2 = "... Smoothing turned off and iterating more. "
+                        msg = "Convergence criterion met after {} iterations in"
+                        msg += " {}."
+                        msg2 = ".. Smoothing turned off and iterating more. "
                         if algo_params.strategy in ['ADI', 'RDI', 'ARDI']:
                             if smooth_ker[it] is not None and condc:
                                 smooth_ker_N = [None]*(len(smooth_ker)-it-1)
                                 smooth_ker[it+1:] = smooth_ker_N
                                 if algo_params.verbose:
-                                    print("\n"+msg.format(it)+msg2)
+                                    dt = timing(start_time)
+                                    print("\n"+msg.format(it, dt)+msg2)
                             else:
                                 if algo_params.verbose:  # and not cond_it:
-                                    print("\n Final " + msg.format(it) + " in ")
+                                    dt = timing(start_time)
+                                    print("\n Final " + msg.format(it, dt))
                                 break
                     if algo_params.strategy == 'RADI':
                         # continue to iterate with ADI

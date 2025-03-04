@@ -166,13 +166,14 @@ def ipca(*all_args: List, **all_kwargs: dict):
              ncomp should correspond to the maximum number of principal
              components to be tested. The increment will be ncomp_step.
     ncomp_start: int, opt
-        For incremental versions of iterative PCA (- if mode is 'Pairet21'), this is the number of
+        For incremental versions of iterative PCA (i.e. if mode is 'Pairet21',
+        'Christiaens24' or 'Juillard23'), this is the number of
         principal components at the first iteration (by default 1). In some
         cases, it is better to increase it to avoid propagating circular
         artefacts (see [JUI24]).
     ncomp_step: int, opt
-        Incremental step for number of principal components - used when mode is
-        not None.
+        Incremental step for number of principal components - used if mode is
+        'Pairet21' or 'Christiaens24'.
     nit: int, opt
         Number of iterations for the iterative PCA.
         - if mode is None:
@@ -414,9 +415,6 @@ def ipca(*all_args: List, **all_kwargs: dict):
     # force full_output
     pca_params['full_output'] = True
     pca_params['verbose'] = False  # too verbose otherwise
-    r = algo_params.ncomp
-    l = algo_params.nit
-    r_start = algo_params.ncomp_start
 
     if algo_params.mode == "Juillard23":
         if no_greeds:
@@ -438,12 +436,15 @@ def ipca(*all_args: List, **all_kwargs: dict):
         if algo_params.full_output is True:
             it_cube, star_estim = GreeDS(algo_params.cube,
                                          algo_params.angle_list,
-                                         refs=ref, r=r, l=l, r_start=r_start,
+                                         refs=ref, r=algo_params.ncomp,
+                                         l=algo_params.nit,
+                                         r_start=algo_params.ncomp_start,
                                          pup=pup, full_output=True,
                                          returnL=True)
         else:
             it_cube = GreeDS(algo_params.cube, algo_params.angle_list,
-                             refs=ref, r=r, l=l, r_start=r_start, pup=pup,
+                             refs=ref, r=algo_params.ncomp, l=algo_params.nit,
+                             r_start=algo_params.ncomp_start, pup=pup,
                              full_output=True, returnL=False)
         frame = it_cube[-1]
 
@@ -704,17 +705,6 @@ def ipca(*all_args: List, **all_kwargs: dict):
                 residuals_cube = res[-2]
                 it_cube[it] = frame.copy()
 
-                # DON'T otherwise frame is smoothed twice!
-                # smoothing and manual derotation if requested
-                if smooth_ker[it] is not None:
-                    residuals_cube = _blurring_3d(residuals_cube, None,
-                                                  fwhm_sz=smooth_ker[it])
-                    residuals_cube_ = cube_derotate(residuals_cube,
-                                                    algo_params.angle_list,
-                                                    imlib=algo_params.imlib,
-                                                    nproc=algo_params.nproc)
-                    frame = cube_collapse(residuals_cube_, algo_params.collapse)
-
                 # Run PCA on disk-empty cube
                 # Update PCA PARAMS
                 pca_params['cube'] = cube_tmp-sig_cube
@@ -726,6 +716,26 @@ def ipca(*all_args: List, **all_kwargs: dict):
 
                 residuals_cube_nd = res_nd[-2]
                 frame_nd = res_nd[0]
+
+                # smoothing and manual derotation if requested
+                if smooth_ker[it] is not None:
+                    # original cube
+                    residuals_cube = _blurring_3d(residuals_cube, None,
+                                                  fwhm_sz=smooth_ker[it])
+                    residuals_cube_ = cube_derotate(residuals_cube,
+                                                    algo_params.angle_list,
+                                                    imlib=algo_params.imlib,
+                                                    nproc=algo_params.nproc)
+                    frame = cube_collapse(residuals_cube_, algo_params.collapse)
+                    # cube with circumstellar signals subtracted
+                    residuals_cube_nd = _blurring_3d(residuals_cube_nd, None,
+                                                     fwhm_sz=smooth_ker[it])
+                    residuals_cube_nd_ = cube_derotate(residuals_cube_nd,
+                                                       algo_params.angle_list,
+                                                       imlib=algo_params.imlib,
+                                                       nproc=algo_params.nproc)
+                    frame_nd = cube_collapse(residuals_cube_nd_,
+                                             algo_params.collapse)
 
                 if algo_params.thr_mode == 'STIM':
                     res = _find_significant_signals(residuals_cube_nd,
@@ -781,10 +791,10 @@ def ipca(*all_args: List, **all_kwargs: dict):
                                 smooth_ker_N = [None]*(len(smooth_ker)-it-1)
                                 smooth_ker[it+1:] = smooth_ker_N
                                 if algo_params.verbose:
-                                    print(msg.format(it)+msg2)
+                                    print("\n"+msg.format(it)+msg2)
                             else:
                                 if algo_params.verbose:  # and not cond_it:
-                                    print("Final " + msg.format(it) + "in ")
+                                    print("\n Final " + msg.format(it) + " in ")
                                 break
                     if algo_params.strategy == 'RADI':
                         # continue to iterate with ADI
@@ -793,7 +803,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
                         ref_cube = None
                         if algo_params.verbose:
                             msg = "After {:.0f} iterations, PCA-RDI -> PCA-ADI."
-                            print(msg.format(it))
+                            print("\n" + msg.format(it))
 
     # mask everything last
     if mask_center_px is not None:

@@ -51,7 +51,7 @@ import numpy as np
 from typing import Union, List
 from ..config.paramenum import ALGO_KEY
 from ..config.utils_param import separate_kwargs_dict
-from ..config import Progressbar, timing, time_ini
+from ..config import Progressbar, timing, time_ini, time_fin
 from ..psfsub import pca, PCA_Params
 from ..preproc import cube_derotate, cube_collapse
 from ..metrics import stim_map, inverse_stim_map
@@ -89,8 +89,8 @@ class IPCA_Params(PCA_Params):
     smooth_ker: Union[float, List, np.ndarray] = None
     rtol: float = 1e-2
     atol: float = 1e-2
-    add_nd_excess: bool = False
     continue_without_smooth_after_conv: bool = False
+    add_nd_excess: bool = False
 
 
 def ipca(*all_args: List, **all_kwargs: dict):
@@ -155,14 +155,25 @@ def ipca(*all_args: List, **all_kwargs: dict):
         signal extraction and works exclusively with Torch, making it faster
         but also more prone to propagate noise and disk flux. Installation of
         the GreeDS package is required for this option.
-    ncomp : int or tuple/list of 2 int, optional
+    ncomp : int or tuple/list of 2 or 3 int, optional
         How many PCs are used as a lower-dimensional subspace to project the
         target frames.
         - if mode is None:
-            * ADI or RDI: an int must be provided, ``ncomp`` is the fixed number
-            of PCs to use.
-            * RADI: can be a list/tuple of 2 elements corresponding to the ncomp
-              to be used for RDI and then ADI.
+            * strategy in {'ADI', 'RDI', 'ARDI} and no ``mask_rdi`` is provided:
+            an int must be provided, ``ncomp`` is the fixed number of PCs to use
+            * strategy in {'ADI', 'RDI', 'ARDI} and ``mask_rdi`` is provided: an
+            int or a tuple/list of 2 int can be provided. In the latter case,
+            the first value is used for PCA-data imputation at the first
+            iteration, and the second for IPCA for the subsequent iterations.
+            * strategy = 'RADI' and no ``mask_rdi`` is provided: an int or a
+            tuple/list of 2 int is accepted. In the latter case, the first value
+            is used for IPCA-RDI, and the second for IPCA-ADI for the remaining
+            iterations after the former converged.
+            * strategy = 'RADI' and ``mask_rdi`` is provided: an int or a
+            tuple/list of 3 int can be provided. In the latter case,
+            the first value is used for PCA-data imputation at the first
+            iteration, the second for IPCA-RDI，and the third for IPCA-ADI for
+            the remaining iterations after the former converged.
          - if mode is not None:
              ncomp should correspond to the maximum number of principal
              components to be tested. The increment will be ncomp_step.
@@ -183,12 +194,13 @@ def ipca(*all_args: List, **all_kwargs: dict):
             this parameter is ignored. Number of iterations will be ncomp.
         - if mode is 'Pairet21', 'Juillard23', or 'Christiaens24':
             iterations per tested ncomp.
-    strategy: str {'ADI, 'RDI', 'ARDI', 'RADI'}, opt
+    strategy: str {'ADI, 'RDI', 'ARDI', 'RADI', 'RARDI''}, opt
         Whether to do iterative ADI only ('ADI'), iterative RDI only ('RDI'),
         iterative ADI and RDI together ('ARDI', i.e. with a combined PCA
-        library), or iterative RDI followed by iterative ADI consecutively
-        ('RADI'). A reference cube `cube_ref` must be provided for 'RDI', 'ARDI'
-        and 'RADI'.
+        library), iterative RDI followed by iterative ADI consecutively
+        ('RADI'), or iterative RDI followed by iterative ARDI consecutively
+        ('RARDI'). A reference cube `cube_ref` must be provided for 'RDI',
+        'ARDI', 'RADI' and 'RARDI'.
     thr: float or 'auto', opt
         Minimum threshold used to identify significant signals in the PCA image
         obtained at each iteration.
@@ -319,6 +331,10 @@ def ipca(*all_args: List, **all_kwargs: dict):
         Whether to continue to iterate after convergence, but without applying
         the smoothing criterion. At this stage, with a good first guess of the
         circumstellar signals, this can lead to a very sharp final image.
+    add_nd_excess: bool, opt
+        Whether to continue to iterate after convergence, but adding the
+        positive residuals in the image obtained after PCA processing of the
+        cube where the estimated circumstellar signals are subtracted.
 
     Returns
     -------
@@ -534,17 +550,27 @@ def ipca(*all_args: List, **all_kwargs: dict):
             msg = "strategy not recognized: must be ADI, RDI, ARDI or RADI"
             raise ValueError(msg)
 
+        cond_di = algo_params.mask_rdi is not None
+
         if isinstance(algo_params.ncomp, (float, int)):
             ncomp_list = [algo_params.ncomp]
+            if cond_di:
+                ncomp_list.append(algo_params.ncomp)
             if algo_params.strategy == 'RADI':
                 ncomp_list.append(algo_params.ncomp)
         elif isinstance(algo_params.ncomp, (tuple, list)):
             ncomp_list = algo_params.ncomp
             if len(algo_params.ncomp) == 1:
+                if algo_params.mask_rdi is not None:
+                    ncomp_list.append(algo_params.ncomp)
                 if algo_params.strategy == 'RADI':
                     ncomp_list.append(algo_params.ncomp)
-            elif not len(algo_params.ncomp) == 2:
-                raise ValueError("Length of npc list cannot be larger than 2")
+            elif len(algo_params.ncomp) == 2:
+                if cond_di and algo_params.strategy == 'RADI':
+                    msg = "npc list/tuple should have 3 elements for "
+                    raise ValueError(msg+"DI+IPCA-RADI")
+            elif not len(algo_params.ncomp) == 3:
+                raise ValueError("Length of npc list cannot be larger than 3")
         else:
             raise TypeError("ncomp should be float, int, tuple or list")
 
@@ -576,6 +602,8 @@ def ipca(*all_args: List, **all_kwargs: dict):
                 raise ValueError("mode is not recognized.")
         else:
             final_ncomp = [ncomp_tmp]*algo_params.nit
+            if cond_di:
+                final_ncomp = [ncomp_tmp]+[ncomp_list[1]]*(algo_params.nit-1)
 
         # Scale cube and cube_ref if necessary
         cube_tmp = prepare_matrix(algo_params.cube, scaling=algo_params.scaling,
@@ -654,6 +682,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
         # 4. Loop, updating the reference cube before projection by subtracting
         #   best disc estimate. This is done by providing sig_cube.
         cond_skip = False  # whether skip an iteration e.g. in incremental mode
+        cond_add_nd_excess = False
         for it in Progressbar(range(1, algo_params.nit), desc="Iterating..."):
             if not cond_skip:
                 # Uncomment here (and comment below) to do like IROLL
@@ -741,7 +770,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
                                              algo_params.collapse)
 
                 # also add significant signals from frame_nd, if requested
-                if algo_params.add_nd_excess:
+                if cond_add_nd_excess and algo_params.thr_mode != 'STIM':
                     sig_mask_nd = np.ones_like(frame_nd)
                     sig_mask_nd[np.where(frame_nd < algo_params.thr)] = 0
                     frame += frame_nd*sig_mask_nd
@@ -786,6 +815,9 @@ def ipca(*all_args: List, **all_kwargs: dict):
                     # next increment in ncomp
                     cond_mod = algo_params.mode in ['Pairet21', 'Christiaens24']
                     cond_it = (it % nit_ori != nit_ori-1)
+                    cond_st = algo_params.strategy in ['ADI', 'RDI', 'ARDI']
+                    cond_ad1 = cond_add_nd_excess is True
+                    cond_ad2 = algo_params.add_nd_excess is False
                     if cond_mod and cond_it:
                         cond_skip = True
                     elif cond_mod:  # in incremental mode don't skip if cond_it
@@ -796,26 +828,38 @@ def ipca(*all_args: List, **all_kwargs: dict):
                         msg = "Convergence criterion met after {} iterations in"
                         msg += " {}."
                         msg2 = ".. Smoothing turned off and iterating more. "
-                        if algo_params.strategy in ['ADI', 'RDI', 'ARDI']:
+                        if cond_st and (cond_ad1 or cond_ad2):
                             if smooth_ker[it] is not None and condc:
                                 smooth_ker_N = [None]*(len(smooth_ker)-it-1)
                                 smooth_ker[it+1:] = smooth_ker_N
                                 if algo_params.verbose:
-                                    dt = timing(start_time)
+                                    dt = time_fin(start_time)
                                     print("\n"+msg.format(it, dt)+msg2)
                             else:
                                 if algo_params.verbose:  # and not cond_it:
-                                    dt = timing(start_time)
+                                    dt = time_fin(start_time)
                                     print("\n Final " + msg.format(it, dt))
                                 break
-                    if algo_params.strategy == 'RADI':
+                    if not cond_st:
                         # continue to iterate with ADI
-                        ncomp_tmp = ncomp_list[1]
-                        algo_params.strategy = 'ADI'
+                        ncomp_tmp = ncomp_list[-1]
+                        algo_params.strategy = algo_params.strategy[1:]  # -'R'
                         ref_cube = None
                         if algo_params.verbose:
-                            msg = "After {:.0f} iterations, PCA-RDI -> PCA-ADI."
+                            msg = "After {:.0f} iterations, PCA-RDI -> PCA-{}."
+                            print("\n" + msg.format(it, algo_params.strategy))
+                    elif not (cond_ad1 or cond_ad2):
+                        # continue to iterate with nd excess
+                        # but increase smooth_ker up to 1.5 to avoid instability
+                        if smooth_ker[it+1] < 2:
+                            for nit_r in range(it+1, algo_params.nit):
+                                smooth_ker[nit_r] = min(smooth_ker[nit_r-1]*1.1,
+                                                        1.5)
+                        if algo_params.verbose:
+                            msg = "After {:.0f} iterations, now iterating "
+                            msg += "with nd excess..."
                             print("\n" + msg.format(it))
+                        cond_add_nd_excess = True
 
     # mask everything last
     if mask_center_px is not None:

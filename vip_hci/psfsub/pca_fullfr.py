@@ -84,6 +84,7 @@ from ..var import (
     dist,
     prepare_matrix,
     reshape_matrix,
+    frame_filter_lowpass,
     cube_filter_lowpass,
     mask_circle,
 )
@@ -116,7 +117,8 @@ class PCA_Params:
     collapse: Enum = Collapse.MEDIAN
     collapse_ifs: Enum = Collapse.MEAN
     ifs_collapse_range: Union[str, Tuple[int]] = "all"
-    smooth_first_pass: bool = False
+    smooth: float = None
+    smooth_first_pass: float = None
     mask_rdi: np.ndarray = None
     ref_strategy: str = 'RDI'  # TBD: expand keyword to replace 'adimsdi'
     # {'RDI', 'ARDI', 'RSDI', 'ARSDI', 'ASDI', 'S+ADI', 'S+ARDI'}
@@ -129,6 +131,7 @@ class PCA_Params:
     left_eigv: bool = False
     min_frames_pca: int = 10
     cube_sig: np.ndarray = None
+    med_of_npcs: bool = False
 
 
 def pca(*all_args: List, **all_kwargs: dict):
@@ -284,10 +287,14 @@ def pca(*all_args: List, **all_kwargs: dict):
     ifs_collapse_range: str 'all' or tuple of 2 int
         If a tuple, it should contain the first and last channels where the mSDI
         residual channels will be collapsed (by default collapses all channels).
-    smooth_first_pass: bool, optional
+    smooth: float or None, optional
+        Gaussian kernel size to use to smooth the images. None by default (no
+        smoothing). Can be used when pca is used within NEGFC with the Hessian
+        figure of merit.
+    smooth_first_pass: float or None, optional
         [adimsdi='double'] For 4D cubes with requested PCA-SADI processing in 2
-        steps, whether to smooth the results of the first pass before performing
-        the second pass.
+        steps, the Gaussian kernel size to use to smooth the images of the first
+        pass before performing the second pass. None by default (no smoothing).
     mask_rdi: tuple of two numpy array or one signle 2d numpy array, opt
         If provided, binary mask(s) will be used either in RDI mode or in
         ADI+mSDI (2 steps) mode. If two masks are provided, they will the anchor
@@ -329,15 +336,20 @@ def pca(*all_args: List, **all_kwargs: dict):
         Cube with estimate of significant authentic signals. If provided, this
         will be subtracted before projecting considering the science cube as
         reference cube.
+    med_of_npcs: bool, opt
+        [ncomp is tuple or list] Whether to consider the median image of the
+        list of images obtained with a list or tuple of ncomp values.
 
     Return
     -------
     final_residuals_cube : List of numpy ndarray
-        [(ncomp is tuple or list) & (source_xy=None or full_output=True)] List
-        of residual final PCA frames obtained for a grid of PC values.
+        [(ncomp is tuple or list) & (med_of_npcs=False or source_xy != None)]
+        List of residual final PCA frames obtained for a grid of PC values.
     frame : numpy ndarray
-        [ncomp is scalar or source_xy!=None] 2D array, median combination of the
-        de-rotated/re-scaled residuals cube.
+        [(ncomp is scalar) or (source_xy != None)] 2D array, median combination
+        of the de-rotated/re-scaled residuals cube.
+        [(ncomp is tuple or list) & (med_of_npcs=True)] median of images
+        obtained with different ncomp values.
     pcs : numpy ndarray
         [full_output=True, source_xy=None] Principal components. Valid for
         ADI cubes 3D or 4D (i.e. ``scale_list=None``). This is also returned
@@ -670,6 +682,11 @@ def pca(*all_args: List, **all_kwargs: dict):
     # Returns for each case (ADI, ADI+RDI and ADI+mSDI) and combination of
     # parameters: full_output, source_xy, batch, ncomp
     # --------------------------------------------------------------------------
+    # If requested (except when source_xy is not None), return median image
+    cond_s = algo_params.source_xy is None
+    if final_residuals_cube is not None and algo_params.med_of_npcs and cond_s:
+        final_residuals_cube = np.median(final_residuals_cube, axis=0)
+
     isarr = isinstance(algo_params.cube, np.ndarray)
     if isarr and algo_params.scale_list is not None:
         # ADI+mSDI double-pass PCA
@@ -731,6 +748,8 @@ def pca(*all_args: List, **all_kwargs: dict):
             # full-frame PCA with rotation threshold
             else:
                 final_res = [frame, recon_cube, residuals_cube, residuals_cube_]
+            if algo_params.cube.ndim == 4:
+                final_res.append(ifs_adi_frames)
             return tuple(final_res)
         elif not algo_params.full_output:
             # PCA grid
@@ -770,6 +789,7 @@ def _adi_rdi_pca(
     cube_sig=None,
     left_eigv=False,
     min_frames_pca=10,
+    smooth=None,
     **rot_options,
 ):
     """Handle the ADI or ADI+RDI PCA post-processing."""
@@ -902,7 +922,6 @@ def _adi_rdi_pca(
                 residuals_cube = residuals_result[0]
                 pcs = residuals_result[2]
                 recon = residuals_result[-1]
-
             residuals_cube_ = cube_derotate(
                 residuals_cube,
                 angle_list,
@@ -911,9 +930,13 @@ def _adi_rdi_pca(
                 interpolation=interpolation,
                 **rot_options,
             )
+            frame = cube_collapse(residuals_cube_, mode=collapse, w=weights)
+            if smooth is not None:
+                frame = frame_filter_lowpass(frame, mode='gauss',
+                                             fwhm_size=smooth)
             if mask_center_px:
                 residuals_cube_ = mask_circle(residuals_cube_, mask_center_px)
-            frame = cube_collapse(residuals_cube_, mode=collapse, w=weights)
+                frame = mask_circle(frame, mask_center_px)
             if verbose:
                 print("Done de-rotating and combining")
                 timing(start_time)
@@ -1231,16 +1254,16 @@ def _adimsdi_doublepca(
         mask_rdi,
         left_eigv,
     )
-    residuals_cube_channels = np.array(res)
+    res_cube_channels = np.array(res)
 
     if verbose:
         timing(start_time)
 
-    if smooth_first_pass:
-        residuals_cube_channels = cube_filter_lowpass(residuals_cube_channels,
-                                                      mode='gauss',
-                                                      fwhm_size=fwhm/3,
-                                                      verbose=False)
+    if smooth_first_pass is not None:
+        res_cube_channels = cube_filter_lowpass(res_cube_channels,
+                                                mode='gauss',
+                                                fwhm_size=smooth_first_pass,
+                                                verbose=False)
 
     # de-rotation of the PCA processed channels, ADI fashion
     if ncomp_adi is None:
@@ -1248,7 +1271,7 @@ def _adimsdi_doublepca(
             print("{} ADI frames".format(n))
             print("De-rotating and combining frames (skipping PCA)")
         residuals_cube_channels_ = cube_derotate(
-            residuals_cube_channels,
+            res_cube_channels,
             angle_list,
             nproc=nproc,
             imlib=imlib,
@@ -1270,7 +1293,7 @@ def _adimsdi_doublepca(
 
         if source_xy is None:
             res_ifs_adi = _project_subtract(
-                residuals_cube_channels,
+                res_cube_channels,
                 None,
                 ncomp_adi,
                 scaling[1],
@@ -1294,12 +1317,12 @@ def _adimsdi_doublepca(
             ann_center = dist(yc, xc, y1, x1)
             pa_thr = _compute_pa_thresh(ann_center, fwhm, delta_rot)
 
-            res_ifs_adi = np.zeros_like(residuals_cube_channels)
+            res_ifs_adi = np.zeros_like(res_cube_channels)
             for frame in range(n):
                 ind = _find_indices_adi(angle_list, frame, pa_thr)
 
                 res_result = _project_subtract(
-                    residuals_cube_channels,
+                    res_cube_channels,
                     None,
                     ncomp_adi,
                     scaling[1],
@@ -1330,7 +1353,7 @@ def _adimsdi_doublepca(
                               w=weights)
         if verbose:
             timing(start_time)
-    return residuals_cube_channels, residuals_cube_channels_, frame
+    return res_cube_channels, residuals_cube_channels_, frame
 
 
 def _adimsdi_doublepca_ifs(

@@ -658,7 +658,7 @@ def pca(*all_args: List, **all_kwargs: dict):
                         final_residuals_cube, frame, table, _ = res_pca
                     else:
                         # returning only the optimal residual
-                        final_residuals_cube = res_pca[1]
+                        final_residuals_cube = res_pca[0]
                 # full-frame PCA with rotation threshold
                 else:
                     recon_cube, residuals_cube, residuals_cube_, frame = res_pca
@@ -683,8 +683,8 @@ def pca(*all_args: List, **all_kwargs: dict):
     # parameters: full_output, source_xy, batch, ncomp
     # --------------------------------------------------------------------------
     # If requested (except when source_xy is not None), return median image
-    cond_s = algo_params.source_xy is None
-    if final_residuals_cube is not None and algo_params.med_of_npcs and cond_s:
+    # cond_s = algo_params.source_xy is None
+    if final_residuals_cube is not None and algo_params.med_of_npcs:
         final_residuals_cube = np.median(final_residuals_cube, axis=0)
 
     isarr = isinstance(algo_params.cube, np.ndarray)

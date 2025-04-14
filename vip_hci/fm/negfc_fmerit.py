@@ -279,11 +279,12 @@ def chisquare(
     # Function of merit
     if mu_sigma is None:
         if fmerit == "sum":
-            chi = np.sum(np.abs(values)) / (values.size - len(modelParameters))
+            ddf = values.size - len(modelParameters)
+            chi = np.nansum(np.abs(values)) / ddf
         elif fmerit == "stddev":
             values = values[values != 0]
             ddf = values.size - len(modelParameters)
-            chi = np.std(values) * values.size / ddf  # TODO: test std**2
+            chi = np.nanstd(values) * values.size / ddf  # TODO: test std**2
         elif fmerit == "hessian":
             # number of Hessian determinants (i.e. of pixels) to consider
             if ndet is None:
@@ -569,6 +570,7 @@ def get_values_optimize(
             scaling=scaling,
             delta_rot=delta_rot,
             source_xy=source_xy,
+            fwhm=fwhm,
             imlib=imlib,
             interpolation=interpolation,
             collapse=collapse,

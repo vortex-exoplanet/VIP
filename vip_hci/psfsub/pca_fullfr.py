@@ -658,7 +658,7 @@ def pca(*all_args: List, **all_kwargs: dict):
                         final_residuals_cube, frame, table, _ = res_pca
                     else:
                         # returning only the optimal residual
-                        final_residuals_cube = res_pca[0]
+                        frame = res_pca[1]
                 # full-frame PCA with rotation threshold
                 else:
                     recon_cube, residuals_cube, residuals_cube_, frame = res_pca
@@ -751,6 +751,8 @@ def pca(*all_args: List, **all_kwargs: dict):
             if algo_params.cube.ndim == 4:
                 final_res.append(ifs_adi_frames)
             return tuple(final_res)
+        elif algo_params.source_xy is not None:
+            return frame
         elif not algo_params.full_output:
             # PCA grid
             if isinstance(algo_params.ncomp, (tuple, list)):

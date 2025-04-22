@@ -207,16 +207,20 @@ def contrast_curve(
     else:
         fwhm_med = fwhm
 
+    # Retrieve ncomp info
+    ncomp = algo_dict["ncomp"]
+
     if verbose:
         start_time = time_ini()
         if isinstance(starphot, float) or isinstance(starphot, int):
-            msg0 = "ALGO : {}, FWHM = {}, # BRANCHES = {}, SIGMA = {},"
-            msg0 += " STARPHOT = {}"
-            print(msg0.format(algo.__name__, fwhm_med, nbranch, sigma,
-                              starphot))
+            msg0 = "ALGO : {}, ncomp = {}, FWHM = {}, \n"
+            msg0 += "# BRANCHES = {}, SIGMA = {}, STARPHOT = {}"
+            print(msg0.format(algo.__name__, ncomp, fwhm_med, nbranch,
+                              sigma, starphot))
         else:
-            msg0 = "ALGO : {}, FWHM = {}, # BRANCHES = {}, SIGMA = {}"
-            print(msg0.format(algo.__name__, fwhm_med, nbranch, sigma))
+            msg0 = "ALGO : {}, ncomp = {}, FWHM = {}, \n"
+            msg0 += "# BRANCHES = {}, SIGMA = {}, "
+            print(msg0.format(algo.__name__, ncomp, fwhm_med, nbranch, sigma))
 
     # throughput
     verbose_thru = False
@@ -496,8 +500,7 @@ def contrast_curve(
 
         # Give a title to the contrast curve plot
         if object_name is not None and frame_size is not None:
-            # Retrieve ncomp and pca_type info to use in title
-            ncomp = algo_dict["ncomp"]
+            # Retrieve pca_type info to use in title
             if algo_dict["cube_ref"] is None:
                 pca_type = "ADI"
             else:

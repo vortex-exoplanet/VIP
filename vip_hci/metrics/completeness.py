@@ -718,7 +718,8 @@ def completeness_curve(
         (con1,) = ax1.plot(
             an_dist_arcsec, cont_curve, "-", alpha=0.2, lw=2, color="green"
         )
-        (con2,) = ax1.plot(an_dist_arcsec, cont_curve, ".", alpha=0.2, color="green")
+        (con2,) = ax1.plot(an_dist_arcsec, cont_curve, ".", alpha=0.2,
+                           color="green")
 
         lege = [(con1, con2)]
 

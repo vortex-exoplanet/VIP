@@ -477,7 +477,7 @@ def _pca_sdi_fr(
 
     cube_res = np.zeros_like(multispec_fr)  # shape (z, resc_y, resc_x)
 
-    if isinstance(delta_sep, tuple):
+    if isinstance(delta_sep, (tuple, list)):
         delta_sep_vec = np.linspace(delta_sep[0], delta_sep[1], n_annuli)
     elif np.isscalar(delta_sep):
         delta_sep_vec = [delta_sep] * n_annuli

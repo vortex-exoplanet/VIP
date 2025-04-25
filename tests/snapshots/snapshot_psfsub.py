@@ -112,9 +112,9 @@ def save_snapshots_psfsub_adi():
     """
     Save expected results (snapshots) for all PSF subtraction functions.
 
-    The obtained frame and the list of companion candidates are saved in separate numpy
-    files to be loaded in tests that require to compare if said function still generate
-    an appropriate result.
+    The obtained frame and the list of companion candidates are saved in
+    separate numpy files to be loaded in tests that require to compare if said
+    function still generate an appropriate result.
 
     """
     betapic, position = injected_cube_position()

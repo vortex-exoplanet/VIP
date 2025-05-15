@@ -185,6 +185,9 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         S/Ns for ``source_xy``.
     opt_npc : int
         [source_xy is not None] Optimal number of PCs for ``source_xy``.
+    opt_SNR : float
+        [source_xy is not None] Optimal signal-to-noise ratio for ``source_xy`` 
+        at opt_npc
 
     """
     from ..metrics import snr, frame_report
@@ -371,6 +374,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
     if x is not None and y is not None and fwhm is not None:
         argmax = np.argmax(snrlist)
         opt_npc = pclist[argmax]
+        opt_SNR = snrlist[argmax]
         df = DataFrame({'PCs': pclist, 'S/Ns': snrlist, 'fluxes': fluxlist})
         if debug:
             print(df, '\n')
@@ -378,7 +382,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         if verbose:
             print('Number of steps', len(pclist))
             msg = 'Optimal number of PCs = {}, for S/N={:.3f}'
-            print(msg.format(opt_npc, snrlist[argmax]))
+            print(msg.format(opt_npc, opt_SNR))
 
             # Plot of SNR and flux as function of PCs
             if plot:
@@ -411,7 +415,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         finalfr = cubeout[argmax]
         _ = frame_report(finalfr, fwhm, (x, y), verbose=verbose)
 
-        return cubeout, finalfr, df, opt_npc
+        return cubeout, finalfr, df, opt_npc, opt_SNR
 
     else:
         if verbose:

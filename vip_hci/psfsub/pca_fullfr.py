@@ -837,11 +837,15 @@ def _adi_rdi_pca(
             raise TypeError(msg)
 
         if np.isscalar(ncomp):
-            if isinstance(ncomp, int) and ncomp > n:
-                ncomp = min(ncomp, n)
+            if cube_ref is not None:
+                nref = cube_ref.shape[0]
+            else:
+                nref = n
+            if isinstance(ncomp, int) and ncomp > nref:
+                ncomp = min(ncomp, nref)
                 print(
                     "Number of PCs too high (max PCs={}), using {} PCs "
-                    "instead.".format(n, ncomp)
+                    "instead.".format(nref, ncomp)
                 )
             if mask_rdi is None:
                 if source_xy is None:

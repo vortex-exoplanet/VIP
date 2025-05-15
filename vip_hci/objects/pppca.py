@@ -243,6 +243,7 @@ class PPPCA(PostProc, PCA_Params, PCA_ANNULAR_Params):
                         self.frame_final,
                         self.dataframe,
                         self.opt_number_pc,
+                        self.opt_SNR,
                     ) = res
                     if self.results is not None:
                         self.results.register_session(

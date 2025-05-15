@@ -9,6 +9,7 @@ help:
 	@echo "clean - remove artifacts"
 
 pypi:
+	rm dist/*
 	python setup.py sdist bdist_wheel
 	twine upload dist/*
 

@@ -273,13 +273,12 @@ def median_sub(*all_args: List, **all_kwargs: dict):
             ARRAY -= model_psf
 
         # Depending on the ``mode``
-        cube_out = ARRAY
         if algo_params.mode == "fullfr":
             # MASK AFTER DEROTATION TO AVOID ARTEFACTS
             # if radius_int > 0:
             #     cube_out = mask_circle(ARRAY, radius_int, fillwith=np.nan)
             # else:
-            #     cube_out = ARRAY
+            cube_out = ARRAY
             if algo_params.cube_ref is not None:
                 if 'sc' in algo_params.collapse_ref:
                     if len(algo_params.collapse_ref) > 9:  # ie radii given?
@@ -307,6 +306,7 @@ def median_sub(*all_args: List, **all_kwargs: dict):
                 print("Median psf reference subtracted")
 
         elif algo_params.mode == "annular":
+            cube_out = np.zeros_like(ARRAY)
             n_annuli = int((y / 2 - algo_params.radius_int) / algo_params.asize)
             if algo_params.verbose:
                 print("N annuli = {}, FWHM = {}".format(

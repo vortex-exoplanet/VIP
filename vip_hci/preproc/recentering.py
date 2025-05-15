@@ -1752,7 +1752,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                ann_width=0.5, collapse='median',
                                imlib='vip-fft', interpolation='lanczos4',
                                border_mode='reflect', log=True, plot=True,
-                               full_output=False, nproc=None, **collapse_args):
+                               full_output=False, nproc=1, **collapse_args):
     """Register frames based on the median speckle pattern.
 
     The function also optionally centers images based on the position of the
@@ -1833,6 +1833,9 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         If True, the shifts are plotted.
     full_output: bool, optional
         Whether to return more variables, useful for debugging.
+    nproc: int or None, optional
+        Number of CPUs to use if frame shifts are to be done in multiprocessing.
+        None assigns half of available CPUs.
     **collapse_args:
         Additional arguments passed to the ``vip_hci.preproc.cube_collapse``
         function.

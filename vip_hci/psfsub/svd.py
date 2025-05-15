@@ -475,7 +475,12 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
             print('Done SVD/PCA with numpy SVD (LAPACK)')
 
     elif mode == 'arpack':
-        U, S, V = svds(matrix, k=ncomp)
+        Un, Sn, Vn = svds(matrix, k=ncomp)
+        #Reorder the principal components as their order is not guaranteed
+        sorted_indices = np.argsort(np.abs(Sn))[::-1]
+        S = Sn[sorted_indices]
+        U = Un[:, sorted_indices]
+        V = Vn[sorted_indices, :]
         if verbose:
             print('Done SVD/PCA with scipy sparse SVD (ARPACK)')
 

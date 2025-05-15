@@ -279,11 +279,12 @@ def chisquare(
     # Function of merit
     if mu_sigma is None:
         if fmerit == "sum":
-            chi = np.sum(np.abs(values)) / (values.size - len(modelParameters))
+            ddf = values.size - len(modelParameters)
+            chi = np.nansum(np.abs(values)) / ddf
         elif fmerit == "stddev":
             values = values[values != 0]
             ddf = values.size - len(modelParameters)
-            chi = np.std(values) * values.size / ddf  # TODO: test std**2
+            chi = np.nanstd(values) * values.size / ddf  # TODO: test std**2
         elif fmerit == "hessian":
             # number of Hessian determinants (i.e. of pixels) to consider
             if ndet is None:
@@ -556,9 +557,9 @@ def get_values_optimize(
     elif algo == pca:
         scale_list = algo_opt_copy.pop("scale_list", None)
         ifs_collapse_range = algo_opt_copy.pop("ifs_collapse_range", "all")
-        mask_rdi = algo_options.pop("mask_rdi", None)
-        delta_rot = algo_options.pop("delta_rot", delta_rot)
-        source_xy = algo_options.pop("source_xy", None)
+        mask_rdi = algo_opt_copy.pop("mask_rdi", None)
+        delta_rot = algo_opt_copy.pop("delta_rot", delta_rot)
+        source_xy = algo_opt_copy.pop("source_xy", None)
         res = pca(
             cube=cube,
             angle_list=angs,
@@ -569,6 +570,7 @@ def get_values_optimize(
             scaling=scaling,
             delta_rot=delta_rot,
             source_xy=source_xy,
+            fwhm=fwhm,
             imlib=imlib,
             interpolation=interpolation,
             collapse=collapse,
@@ -756,19 +758,20 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
     if r_guess < fwhm:
         raise ValueError("r_guess should be greater than fwhm.")
 
-    ncomp = algo_options.get("ncomp", ncomp)
-    svd_mode = algo_options.get("svd_mode", svd_mode)
-    scaling = algo_options.get("scaling", scaling)
-    imlib = algo_options.get("imlib", imlib)
-    interpolation = algo_options.get("interpolation", interpolation)
-    collapse = algo_options.get("collapse", collapse)
+    algo_opt_copy = algo_options.copy()
+    ncomp = algo_opt_copy.pop("ncomp", ncomp)
+    svd_mode = algo_opt_copy.pop("svd_mode", svd_mode)
+    scaling = algo_opt_copy.pop("scaling", scaling)
+    imlib = algo_opt_copy.pop("imlib", imlib)
+    interpolation = algo_opt_copy.pop("interpolation", interpolation)
+    collapse = algo_opt_copy.pop("collapse", collapse)
 
     radius_int = max(int(np.floor(r_guess - annulus_width / 2)), 0)
-    radius_int = algo_options.get("radius_int", radius_int)
+    radius_int = algo_opt_copy.pop("radius_int", radius_int)
 
     # not recommended, except if large-scale residual sky present (NIRC2-L')
-    hp_filter = algo_options.get("hp_filter", None)
-    hp_kernel = algo_options.get("hp_kernel", None)
+    hp_filter = algo_opt_copy.pop("hp_filter", None)
+    hp_kernel = algo_opt_copy.pop("hp_kernel", None)
     if hp_filter is not None:
         if "median" in hp_filter:
             array = cube_filter_highpass(array, mode=hp_filter,
@@ -794,6 +797,7 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
             interpolation=interpolation,
             collapse=collapse,
             weights=weights,
+            **algo_opt_copy,
         )
         if f_guess is not None and psfn is not None:
             pca_res_inv = pca_annulus(
@@ -809,13 +813,14 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
                 interpolation=interpolation,
                 collapse=collapse,
                 weights=weights,
+                **algo_opt_copy,
             )
 
     elif algo == pca_annular:
-        tol = algo_options.get("tol", 1e-1)
-        min_frames_lib = algo_options.get("min_frames_lib", 2)
-        max_frames_lib = algo_options.get("max_frames_lib", 200)
-        nproc = algo_options.get("nproc", 1)
+        tol = algo_opt_copy.pop("tol", 1e-1)
+        min_frames_lib = algo_opt_copy.pop("min_frames_lib", 2)
+        max_frames_lib = algo_opt_copy.pop("max_frames_lib", 200)
+        nproc = algo_opt_copy.pop("nproc", 1)
         # crop cube to just be larger than annulus => FASTER PCA
         crop_sz = int(2 * np.ceil(radius_int + annulus_width + 1))
         if not crop_sz % 2:
@@ -847,6 +852,7 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
             full_output=False,
             verbose=False,
             weights=weights,
+            **algo_opt_copy,
         )
         # pad again now
         pca_res = np.pad(pca_res_tmp, pad, mode="constant",
@@ -873,15 +879,16 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
                 full_output=False,
                 verbose=False,
                 weights=weights,
+                **algo_opt_copy,
                 )
             pca_res_inv = np.pad(pca_res_tinv, pad, mode="constant",
                                  constant_values=0)
 
     elif algo == pca:
-        scale_list = algo_options.get("scale_list", None)
-        ifs_collapse_range = algo_options.get("ifs_collapse_range", "all")
-        nproc = algo_options.get("nproc", 1)
-        source_xy = algo_options.get("source_xy", None)
+        scale_list = algo_opt_copy.pop("scale_list", None)
+        ifs_collapse_range = algo_opt_copy.pop("ifs_collapse_range", "all")
+        nproc = algo_opt_copy.pop("nproc", 1)
+        source_xy = algo_opt_copy.pop("source_xy", None)
 
         pca_res = pca(
             cube=array,
@@ -900,6 +907,7 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
             nproc=nproc,
             weights=weights,
             verbose=False,
+            **algo_opt_copy,
         )
         if f_guess is not None and psfn is not None:
             pca_res_inv = pca(
@@ -919,6 +927,7 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
                 nproc=nproc,
                 weights=weights,
                 verbose=False,
+                **algo_opt_copy,
             )
 
     else:

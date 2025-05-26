@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-
 import os
 import re
+
 from setuptools import setup
 try:
     # pip >=20
@@ -51,7 +51,7 @@ try:
 except:
     requirements = [str(ir.req) for ir in reqs]
 
-reqs_dev = parse_requirements(resource('requirements-dev.txt'), 
+reqs_dev = parse_requirements(resource('requirements-dev.txt'),
                               session=PipSession)
 try:
     requirements_dev = [str(ir.requirement) for ir in reqs_dev]
@@ -72,8 +72,8 @@ PACKAGES = ['vip_hci',
             'vip_hci.config',
             'vip_hci.fits',
             'vip_hci.fm',
-            'vip_hci.invprob',
             'vip_hci.greedy',
+            'vip_hci.invprob',
             'vip_hci.metrics',
             'vip_hci.objects',
             'vip_hci.preproc',

@@ -816,47 +816,71 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
                 **algo_opt_copy,
             )
 
-    elif algo == pca_annular:
+    elif algo == pca_annular or algo == nmf_annular:
         tol = algo_opt_copy.pop("tol", 1e-1)
         min_frames_lib = algo_opt_copy.pop("min_frames_lib", 2)
         max_frames_lib = algo_opt_copy.pop("max_frames_lib", 200)
-        nproc = algo_opt_copy.pop("nproc", 1)
+        radius_int = max(1, int(np.floor(r_guess - annulus_width / 2)))
+        radius_int = algo_opt_copy.pop("radius_int", radius_int)
+        asize = algo_opt_copy.pop("asize", annulus_width)
+        delta_rot = algo_opt_copy.pop("delta_rot", delta_rot)
+        _ = algo_opt_copy.pop("verbose", verbose)
         # crop cube to just be larger than annulus => FASTER PCA
-        crop_sz = int(2 * np.ceil(radius_int + annulus_width + 1))
+        crop_sz = int(2 * np.ceil(radius_int + asize + 1))
         if not crop_sz % 2:
             crop_sz += 1
-        if crop_sz < array.shape[1] and crop_sz < array.shape[2]:
-            pad = int((array.shape[1] - crop_sz) / 2)
-            crop_cube = cube_crop_frames(array, crop_sz, verbose=False)
+        if crop_sz < cube.shape[-2] and crop_sz < cube.shape[-1]:
+            pad = int((cube.shape[-2] - crop_sz) / 2)
+            crop_cube = cube_crop_frames(cube, crop_sz, verbose=False)
         else:
+            crop_cube = cube
             pad = 0
-            crop_cube = array
-
-        pca_res_tmp = pca_annular(
-            cube=crop_cube,
-            angle_list=angs,
-            radius_int=radius_int,
-            fwhm=fwhm,
-            asize=annulus_width,
-            delta_rot=delta_rot,
-            ncomp=ncomp,
-            svd_mode=svd_mode,
-            scaling=scaling,
-            imlib=imlib,
-            interpolation=interpolation,
-            collapse=collapse,
-            tol=tol,
-            nproc=nproc,
-            min_frames_lib=min_frames_lib,
-            max_frames_lib=max_frames_lib,
-            full_output=False,
-            verbose=False,
-            weights=weights,
-            **algo_opt_copy,
-        )
+        if algo == pca_annular:
+            res_tmp = algo(
+                cube=crop_cube,
+                angle_list=angs,
+                cube_ref=cube_ref,
+                radius_int=radius_int,
+                fwhm=fwhm,
+                asize=asize,
+                delta_rot=delta_rot,
+                ncomp=ncomp,
+                svd_mode=svd_mode,
+                scaling=scaling,
+                imlib=imlib,
+                interpolation=interpolation,
+                collapse=collapse,
+                weights=weights,
+                tol=tol,
+                min_frames_lib=min_frames_lib,
+                max_frames_lib=max_frames_lib,
+                full_output=False,
+                verbose=False,
+                **algo_opt_copy,
+            )
+        else:
+            res_tmp = algo(
+                cube=crop_cube,
+                angle_list=angs,
+                cube_ref=cube_ref,
+                radius_int=radius_int,
+                fwhm=fwhm,
+                asize=annulus_width,
+                delta_rot=delta_rot,
+                ncomp=ncomp,
+                scaling=scaling,
+                imlib=imlib,
+                interpolation=interpolation,
+                collapse=collapse,
+                weights=weights,
+                min_frames_lib=min_frames_lib,
+                max_frames_lib=max_frames_lib,
+                full_output=False,
+                verbose=False,
+                **algo_opt_copy,
+            )
         # pad again now
-        pca_res = np.pad(pca_res_tmp, pad, mode="constant",
-                         constant_values=0)
+        pca_res = np.pad(res_tmp, pad, mode="constant", constant_values=0)
 
         if f_guess is not None and psfn is not None:
             pca_res_tinv = pca_annular(
@@ -873,7 +897,6 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
                 interpolation=interpolation,
                 collapse=collapse,
                 tol=tol,
-                nproc=nproc,
                 min_frames_lib=min_frames_lib,
                 max_frames_lib=max_frames_lib,
                 full_output=False,

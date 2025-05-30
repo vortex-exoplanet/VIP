@@ -1635,8 +1635,8 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         plt.xlabel('Pixels')
 
         plt.figure(figsize=vip_figsize)
-        plt.plot(y, 'o-', label='shifts in y', alpha=0.5)
         plt.plot(x, 'o-', label='shifts in x', alpha=0.5)
+        plt.plot(y, 'o-', label='shifts in y', alpha=0.5)
         plt.legend(loc='best')
         plt.grid('on', alpha=0.2)
         plt.ylabel('Pixels')

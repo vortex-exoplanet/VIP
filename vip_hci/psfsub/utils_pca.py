@@ -189,7 +189,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
     """
     from ..metrics import snr, frame_report
 
-    def truncate_svd_get_finframe(matrix, angle_list, ncomp, V, **rot_options):
+    def truncate_svd_get_finframe(matrix, angle_list, ncomp, V):
         """ Projection, subtraction, derotation plus combination in one frame.
         Only for full-frame"""
         transformed = np.dot(V[:ncomp], matrix.T)
@@ -226,7 +226,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         res_frame = cube_collapse(residuals_res_der, mode=collapse, w=weights)
         return res_frame
 
-    def truncate_svd_get_finframe_ann(matrix, indices, angle_list, ncomp, V, **rot_options):
+    def truncate_svd_get_finframe_ann(matrix, indices, angle_list, ncomp, V):
         """ Projection, subtraction, derotation plus combination in one frame.
         Only for annular mode"""
         transformed = np.dot(V[:ncomp], matrix.T)
@@ -349,10 +349,10 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
     frlist = []
     for pc in pclist:
         if mode == 'fullfr':
-            frame = truncate_svd_get_finframe(matrix, angle_list, pc, V, **rot_options)
+            frame = truncate_svd_get_finframe(matrix, angle_list, pc, V)
         elif mode == 'annular':
             frame = truncate_svd_get_finframe_ann(matrix, annind,
-                                                  angle_list, pc, V, **rot_options)
+                                                  angle_list, pc, V)
         else:
             raise RuntimeError('Wrong mode. Choose either full or annular')
 

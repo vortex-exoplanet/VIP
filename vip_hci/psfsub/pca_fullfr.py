@@ -847,6 +847,9 @@ def _adi_rdi_pca(
                     "Number of PCs too high (max PCs={}), using {} PCs "
                     "instead.".format(nref, ncomp)
                 )
+            elif ncomp <= 0:
+                msg = "Number of PCs too low. It should be > 0."
+                raise ValueError(msg)
             if mask_rdi is None:
                 if source_xy is None:
                     residuals_result = _project_subtract(

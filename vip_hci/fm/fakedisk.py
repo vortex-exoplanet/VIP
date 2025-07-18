@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 """Module with fake disk injection functions."""
 
-__author__ = "Julien Milli, Valentin Christiaens"
+__author__ = "Julien Milli, Valentin Christiaens, Iain Hammond"
 __all__ = ["cube_inject_fakedisk", "cube_inject_trace"]
 
 import numpy as np

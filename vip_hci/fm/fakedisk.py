@@ -5,85 +5,76 @@ __author__ = "Julien Milli, Valentin Christiaens"
 __all__ = ["cube_inject_fakedisk", "cube_inject_trace"]
 
 import numpy as np
-from scipy import signal
-from scipy.interpolate import interp1d
+from scipy.signal import fftconvolve
+
 from ..preproc import cube_derotate, frame_shift
 from ..var import frame_center, dist_matrix
 
 
 def cube_inject_fakedisk(
-    fakedisk, angle_list, psf=None, transmission=None, **rot_options
-):
+    fakedisk: np.ndarray,
+    angle_list: list | np.ndarray,
+    transmission: np.ndarray | None = None,
+    psf: np.ndarray | float | int | None = None,
+    normalize_psf: bool = True,
+    **rot_options,
+) -> np.ndarray:
     """
-    Create an ADI cube with a rotated synthetic disk image injected following\
-    input angle list.
+    Create an ADI cube with a synthetic disk image injected at specified
+    rotation angles.
 
     Parameters
     ----------
-    fakedisk : numpy ndarray
-        Input image of a fake disc
-    angle_list : 1d numpy ndarray
-        Vector of derotation angles to be associated with the cube images.
-    psf : (optional) the PSF to convolve the disk image with. It can be a
-        small numpy.ndarray (we advise to use odd sizes to make sure the center
-        s not shifted through the convolution). It forces normalization of the
-        PSF to preserve the flux. It can also be a float representing
-        the FWHM of the gaussian to be used for convolution.
-    imlib : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    interpolation : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    cxy : tuple of int, optional
-        Coordinates X,Y  of the point with respect to which the rotation will be
-        performed. By default the rotation is done with respect to the center
-        of the frames, as it is returned by the function
-        vip_hci.var.frame_center.
-    nproc : int, optional
-        Whether to rotate the frames in the sequence in a multi-processing
-        fashion. Only useful if the cube is significantly large (frame size and
-        number of frames).
-    border_mode : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    rot_options: dictionary, optional
+    fakedisk : numpy.ndarray
+        Input array of a fake disk.
+    angle_list : list or 1D numpy.ndarray
+        Vector containing the parallactic angles to be associated with the cube
+         images.
+    transmission: numpy.ndarray, optional
+        Array with 2 columns. First column is the radial separation in pixels.
+        Second column is the off-axis transmission (between 0 and 1) at the
+        radial separation given in the first column. This is used to apply a
+        transmission profile to the fake disk.
+    psf : numpy.ndarray, float or int, optional
+        The PSF to convolve the disk image with. It can be a small
+        numpy.ndarray (we advise to use odd sizes to make sure the center
+        is not shifted through the convolution). It forces normalization of the
+        PSF by default to preserve the flux. It can also be a float representing
+        the FWHM of the Gaussian to be used for convolution.
+    normalize_psf : bool, optional
+        Flag to prevent the function from normalizing the PSF. Set to False only
+        in peculiar cases where the PSF is truly meant to not sum to 1.
+    rot_options: dict, optional
         Dictionary with optional keyword values for "nproc", "cxy", "imlib",
         "interpolation, "border_mode", "mask_val",  "edge_blend",
         "interp_zeros", "ker" (see documentation of
-        ``vip_hci.preproc.frame_rotate``)
+        ``vip_hci.preproc.frame_rotate``).
 
     Returns
     -------
-    fakedisk_cube : numpy ndarray
-        Resulting cube with the fake disc inserted at the correct angles and
-        convolved with the psf if a psf was provided.
-
-    Example
-    -------
-    .. code-block:: python
-
-        import numpy as np
-
-        fakedisk = np.zeros((200,200))
-        fakedisk[:,99:101] = 1
-        angle_list = np.arange(10)
-        c = create_fakedisk_cube(fakedisk, angle_list, psf=None,
-                                 imlib='vip-fft', interpolation='lanczos4',
-                                 cxy=None, nproc=1, border_mode='constant')
+    fakedisk_cube : numpy.ndarray
+        Resulting cube with the fake disk inserted at the correct angles and
+        convolved with the PSF if a PSF was provided.
 
     """
     if not fakedisk.ndim == 2:
         raise TypeError("Fakedisk is not a frame or a 2d array.")
     if not angle_list.ndim == 1:
         raise TypeError("Input parallactic angle is not a 1d array")
-    nframes = len(angle_list)
-    ny, nx = fakedisk.shape
-    fakedisk_cube = np.repeat(fakedisk[np.newaxis, :, :], nframes, axis=0)
-    fakedisk_cube = cube_derotate(fakedisk_cube, -angle_list, **rot_options)
 
+    if transmission is not None:
+        if transmission.ndim != 2:
+            raise ValueError("transmission should be a 2D ndarray")
+        y_star, x_star = frame_center(fakedisk)
+        d = dist_matrix(fakedisk.shape[-1], x_star, y_star)
+        # beyond the last value of the transmission profile, we assume a transmission of 1
+        interp_trans = np.interp(d, transmission[0], transmission[1], left=0, right=1)
+        fakedisk *= interp_trans
     if psf is not None:
         if isinstance(psf, np.ndarray):
             if psf.ndim != 2:
                 raise TypeError("Input PSF is not a frame or 2d array.")
-            if np.abs(np.sum(psf) - 1) > 1e-4:
+            if np.abs(np.sum(psf) - 1) > 1e-4 and normalize_psf:
                 print(
                     "Warning the PSF is not normalized to a total of 1. "
                     "Normalization was forced."
@@ -91,8 +82,7 @@ def cube_inject_fakedisk(
                 psf = psf / np.sum(psf)
         elif isinstance(psf, (int, float)):
             # assumes psf is equal to the FWHM of the PSF. We create a synthetic
-            # PSF in that case
-            # with a size of 2 times the FWHM.
+            # PSF in that case with a size of 2 times the FWHM.
             psf_size = 2 * int(np.round(psf)) + 1  # to make sure this is odd.
             xarrray, yarray = np.meshgrid(
                 np.arange(-(psf_size // 2), psf_size // 2 + 1),
@@ -105,23 +95,14 @@ def cube_inject_fakedisk(
         else:
             raise TypeError(
                 "The type of the psf is unknown. "
-                "create_fakedisk_cube accepts ndarray, int or "
-                "float."
-            )
-        for i in range(nframes):
-            fakedisk_cube[i, :, :] = signal.fftconvolve(
-                fakedisk_cube[i, :, :], psf, mode="same"
-            )
+                "cube_inject_fakedisk accepts ndarray, int or "
+                "float.")
 
-    if transmission is not None:
-        # last radial separation should be beyond the edge of frame
-        interp_trans = interp1d(transmission[0], transmission[1])
-        y_star, x_star = frame_center(fakedisk_cube[0])
-        d = dist_matrix(fakedisk_cube.shape[-1], x_star, y_star)
-        for i in range(d.shape[0]):
-            for j in range(d.shape[1]):
-                i_t = interp_trans(d[i, j])
-                fakedisk_cube[:, i, j] = i_t * fakedisk_cube[:, i, j]
+        fakedisk = fftconvolve(fakedisk, psf, mode="same")
+
+    nframes = len(angle_list)
+    fakedisk_cube = np.repeat(fakedisk[np.newaxis, :, :], nframes, axis=0)
+    fakedisk_cube = cube_derotate(fakedisk_cube, -angle_list, **rot_options)
 
     return fakedisk_cube
 

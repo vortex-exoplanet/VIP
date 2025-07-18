@@ -339,9 +339,9 @@ def cube_derotate(array, angle_list, imlib='vip-fft', interpolation='lanczos4',
 
     Parameters
     ----------
-    array : numpy ndarray
+    array : numpy.ndarray
         Input 3d array, cube.
-    angle_list : list
+    angle_list : list or 1D numpy.ndarray
         Vector containing the parallactic angles.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.

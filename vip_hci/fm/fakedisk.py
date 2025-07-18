@@ -4,6 +4,8 @@
 __author__ = "Julien Milli, Valentin Christiaens, Iain Hammond"
 __all__ = ["cube_inject_fakedisk", "cube_inject_trace"]
 
+from typing import Union, Optional
+
 import numpy as np
 from scipy.signal import fftconvolve
 
@@ -13,9 +15,9 @@ from ..var import frame_center, dist_matrix
 
 def cube_inject_fakedisk(
     fakedisk: np.ndarray,
-    angle_list: list | np.ndarray,
-    transmission: np.ndarray | None = None,
-    psf: np.ndarray | float | int | None = None,
+    angle_list: Union[list, np.ndarray],
+    transmission: Optional[np.ndarray] = None,
+    psf: Union[np.ndarray, float, int, None] = None,
     normalize_psf: bool = True,
     **rot_options,
 ) -> np.ndarray:

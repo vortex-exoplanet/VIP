@@ -66,9 +66,9 @@ def frame_center(array, verbose=False):
 
     Parameters
     ----------
-    array : 2d/3d/4d numpy ndarray
-        Frame or cube.
-    verbose : bool optional
+    array : numpy.ndarray
+        2D frame or 3D/4D frame or cube.
+    verbose : bool, optional
         If True the center coordinates are printed out.
 
     Returns

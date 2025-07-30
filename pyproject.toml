@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = [ "pip", "setuptools>=77" ]
+requires = ["setuptools>=77.0.0"]
 
 [project]
 name = "vip_hci"
@@ -25,6 +25,47 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Astronomy",
 ]
 urls.Homepage = "https://github.com/vortex-exoplanet/VIP"
+dependencies = [
+    "numpy",
+    "scipy",
+    "astropy",
+    "photutils",
+    "scikit-learn",
+    "scikit-image",
+    "emcee",
+    "nestle",
+    "corner",
+    "pandas",
+    "matplotlib>=3.7.0",
+    "psutil",
+    "pyprind",
+    "munch",
+    "hciplot>=0.2.4",
+    "dataclass_builder",
+]
+
+[dependency-groups]
+dev = [
+    "build",
+    "twine",
+    "opencv-python",
+    "sphinx",
+    "myst-nb",
+    "myst-parser",
+    "pandoc",
+    "pytest",
+    "pytest-cov ~=2.6.0",
+    "pytest-split",
+    "flake8",
+    "flake8-bandit",
+    "flake8-docstrings",
+    "autopep8",
+    "ratelimit",
+    "pre-commit",
+    "nbsphinx",
+    "sphinx_rtd_theme",
+    "jupyter_sphinx",
+]
 
 [tool.setuptools]
 zip-safe = false

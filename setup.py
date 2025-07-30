@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import os
-import re
 
 from setuptools import setup
 try:
@@ -58,52 +57,10 @@ try:
 except:
     requirements_dev = [str(ir.req) for ir in reqs_dev]
 
-with open(resource('README.rst')) as readme_file:
-    README = readme_file.read()
-
-with open(resource('vip_hci', '__init__.py')) as version_file:
-    version_file = version_file.read()
-    VERSION = re.search(r"""^__version__ = ['"]([^'"]*)['"]""",
-                        version_file, re.M)
-    VERSION = VERSION.group(1)
-
-
-PACKAGES = ['vip_hci',
-            'vip_hci.config',
-            'vip_hci.fits',
-            'vip_hci.fm',
-            'vip_hci.greedy',
-            'vip_hci.invprob',
-            'vip_hci.metrics',
-            'vip_hci.objects',
-            'vip_hci.preproc',
-            'vip_hci.psfsub',
-            'vip_hci.stats',
-            'vip_hci.var']
 
 setup(
-    name='vip_hci',
-    version=VERSION,
-    description='Package for astronomical high-contrast image processing.',
-    long_description=README,
-    license='MIT',
-    author='Carlos Alberto Gomez Gonzalez, Valentin Christiaens',
-    author_email='valentin.christiaens@uliege.be',
-    url='https://github.com/vortex-exoplanet/VIP',
     cmdclass={'install': InstallReqs,
               'develop': InstallDevReqs},
-    packages=PACKAGES,
     install_requires=requirements,
     extras_require={"dev": requirements_dev},
-    zip_safe=False,
-    classifiers=['Intended Audience :: Science/Research',
-                 'License :: OSI Approved :: MIT License',
-                 'Operating System :: MacOS :: MacOS X',
-                 'Operating System :: POSIX :: Linux',
-                 'Natural Language :: English',
-                 'Programming Language :: Python :: 3.7',
-                 'Programming Language :: Python :: 3.8',
-                 'Programming Language :: Python :: 3.9',
-                 'Topic :: Scientific/Engineering :: Astronomy'
-                 ]
 )

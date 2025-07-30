@@ -16,7 +16,6 @@ from inspect import signature, Parameter
 from functools import wraps
 import multiprocessing
 import warnings
-from vip_hci import __version__
 
 sep = "―" * 80
 vip_figsize = (8, 5)
@@ -44,6 +43,7 @@ class Saveable(object):
 
 
         """
+        from vip_hci import __version__ # TODO: replace this with importlib.metadata.version
 
         vip_object = self.__class__.__name__
 
@@ -70,6 +70,8 @@ class Saveable(object):
 
     @classmethod
     def load(cls, filename):
+        from vip_hci import __version__ # TODO: replace this with importlib.metadata.version
+
         try:
             data = np.load(filename, allow_pickle=True)
         except BaseException:

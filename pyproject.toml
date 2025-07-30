@@ -1,0 +1,33 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [ "pip", "setuptools>=77" ]
+
+[project]
+name = "vip_hci"
+version = "1.6.6"
+description = "Package for astronomical high-contrast image processing."
+readme = "README.rst"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+  { name = "Carlos Alberto Gomez Gonzalez" },
+  { name = "Valentin Christiaens", email = "valentin.christiaens@uliege.be" },
+]
+requires-python = ">=3.8"
+classifiers = [
+  "Intended Audience :: Science/Research",
+  "Natural Language :: English",
+  "Operating System :: MacOS :: MacOS X",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Scientific/Engineering :: Astronomy",
+]
+urls.Homepage = "https://github.com/vortex-exoplanet/VIP"
+
+[tool.setuptools]
+zip-safe = false
+packages.find = { namespaces = false }

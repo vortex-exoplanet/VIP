@@ -17,6 +17,7 @@
 #
 import os
 import sys
+from importlib.metadata import version as md_version
 
 import matplotlib
 # fix for `ImportError: No module named _tkinter`:
@@ -25,10 +26,7 @@ matplotlib.use("agg")
 
 sys.path.insert(0, os.path.abspath('../../vip_hci/'))
 
-with open(os.path.join(os.path.abspath('../../vip_hci/'), '__init__.py')) as init:
-    for line in init:
-        if "__version__ =" in line:
-            version = line.split('"')[1]
+version = md_version('vip_hci')
 
 
 # -- General configuration ------------------------------------------------

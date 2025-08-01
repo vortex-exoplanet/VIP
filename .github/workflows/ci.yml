@@ -5,6 +5,11 @@ name: ci
 
 on: [push, pull_request]
 
+concurrency:
+  # auto-cancel any in-progress job *on the same branch*
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   no_object_checks:
 

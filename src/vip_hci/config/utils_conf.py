@@ -12,6 +12,7 @@ import sys
 import numpy as np
 
 import itertools as itt
+from importlib.metadata import version
 from inspect import signature, Parameter
 from functools import wraps
 import multiprocessing
@@ -43,8 +44,6 @@ class Saveable(object):
 
 
         """
-        from vip_hci import __version__ # TODO: replace this with importlib.metadata.version
-
         vip_object = self.__class__.__name__
 
         if hasattr(self, "_saved_attributes"):
@@ -60,7 +59,7 @@ class Saveable(object):
                         data["_item_{}".format(a)] = True
 
                 np.savez_compressed(
-                    filename, _vip_version=__version__, _vip_object=vip_object, **data
+                    filename, _vip_version=version('vip_hci'), _vip_object=vip_object, **data
                 )
 
         else:
@@ -70,8 +69,6 @@ class Saveable(object):
 
     @classmethod
     def load(cls, filename):
-        from vip_hci import __version__ # TODO: replace this with importlib.metadata.version
-
         try:
             data = np.load(filename, allow_pickle=True)
         except BaseException:
@@ -89,7 +86,7 @@ class Saveable(object):
             )
 
         file_vip_version = data["_vip_version"].item()
-        if file_vip_version != __version__:
+        if file_vip_version != version('vip_hci'):
             print(
                 "The file was saved with VIP {}. There may be some"
                 "compatibility issues. Use with care."

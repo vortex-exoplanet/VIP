@@ -1,5 +1,3 @@
-__version__ = "1.6.6"
-
 from . import preproc
 from . import config
 from . import fits
@@ -11,3 +9,12 @@ from . import stats
 from . import var
 from . import objects
 from .vip_ds9 import *
+
+__version__ = "1.6.6"
+# TODO: replace static __version__ with the following dynamic lookup
+# (requires CI test against a built package rather than the source tree)
+# def __getattr__(name: str):
+#     if name == '__version__':
+#         from importlib.metadata import version
+#         return version('vip_hci')
+#     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

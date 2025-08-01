@@ -59,7 +59,7 @@ test:
 	pre-commit run --files vip_hci/stats/*.py
 	pre-commit run --files vip_hci/var/*.py
 	pre-commit run --files vip_hci/objects/*.py
-	pytest --cov=vip_hci/ --cov-report=xml
+	pytest --cov=src --cov-report=xml
 	rm confi_hist.pdf
 	rm confi_hist_gaussfit.pdf
 	rm confidence.txt

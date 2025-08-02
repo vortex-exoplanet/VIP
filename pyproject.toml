@@ -13,14 +13,13 @@ authors = [
   { name = "Carlos Alberto Gomez Gonzalez" },
   { name = "Valentin Christiaens", email = "valentin.christiaens@uliege.be" },
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 classifiers = [
   "Intended Audience :: Science/Research",
   "Natural Language :: English",
   "Operating System :: MacOS :: MacOS X",
   "Operating System :: POSIX :: Linux",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Topic :: Scientific/Engineering :: Astronomy",

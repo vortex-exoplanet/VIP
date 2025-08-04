@@ -24,7 +24,7 @@ import matplotlib
 matplotlib.use("agg")
 
 
-sys.path.insert(0, os.path.abspath('../../vip_hci/'))
+sys.path.insert(0, os.path.abspath('../../src/vip_hci/'))
 
 version = md_version('vip_hci')
 

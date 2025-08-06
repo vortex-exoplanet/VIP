@@ -11,8 +11,6 @@ __all__ = ['gelman_rubin',
            'gelman_rubin_from_chain']
 
 import numpy as np
-import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 def gelman_rubin(x):

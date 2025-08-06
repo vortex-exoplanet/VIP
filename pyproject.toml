@@ -29,3 +29,8 @@ urls.Homepage = "https://github.com/vortex-exoplanet/VIP"
 [tool.setuptools]
 zip-safe = false
 packages.find = { namespaces = false }
+
+[tool.pytest.ini_options]
+filterwarnings = [
+  "error",
+]

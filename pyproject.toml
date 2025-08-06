@@ -33,5 +33,6 @@ packages.find = { namespaces = false }
 [tool.pytest.ini_options]
 filterwarnings = [
   "error",
-  'ignore::ImportWarning'
+  'ignore::ImportWarning',
+  'ignore:The fit may be unsuccessful:UserWarning', # noisy astropy warnings
 ]

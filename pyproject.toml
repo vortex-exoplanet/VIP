@@ -33,4 +33,5 @@ packages.find = { namespaces = false }
 [tool.pytest.ini_options]
 filterwarnings = [
   "error",
+  'ignore::ImportWarning'
 ]

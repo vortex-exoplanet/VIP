@@ -65,8 +65,6 @@ from ..psfsub import pca_annulus
 from .negfc_fmerit import get_values_optimize, get_mu_and_sigma
 from .utils_mcmc import gelman_rubin, autocorr_test
 from .utils_negfc import find_nearest
-import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 def lnprior(param, bounds, force_rPA=False):

@@ -5,7 +5,7 @@ myst-nb
 myst-parser
 pandoc
 pytest
-pytest-cov ~=2.6.0
+pytest-cov >=2.6.0
 pytest-split
 flake8
 flake8-bandit

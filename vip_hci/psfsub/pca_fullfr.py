@@ -655,7 +655,7 @@ def pca(*all_args: List, **all_kwargs: dict):
                 # PCA grid, computing S/Ns
                 if isinstance(algo_params.ncomp, (tuple, list)):
                     if algo_params.full_output:
-                        final_residuals_cube, frame, table, _ = res_pca
+                        final_residuals_cube, frame, table, _, _ = res_pca
                     else:
                         # returning only the optimal residual
                         frame = res_pca[1]

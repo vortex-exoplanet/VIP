@@ -55,6 +55,9 @@ myst_enable_extensions = ["amsmath",
 
 suppress_warnings = ["mystnb.unknown_mime_type"]
 
+# default timeout is 30s which is too short to compile most VIP notebooks
+nb_execution_timeout = 99999
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = []#['./_templates']
 

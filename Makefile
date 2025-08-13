@@ -10,11 +10,11 @@ help:
 
 pypi:
 	rm dist/*
-	python setup.py sdist bdist_wheel
+	python -m build
 	twine upload dist/*
 
 pypi-test:
-	python setup.py sdist bdist_wheel
+	python -m build
 	twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
 docs:

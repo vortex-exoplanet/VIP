@@ -1382,15 +1382,10 @@ def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
     scikit-image 0.19. This should be set to None to maintain the original
     behaviour of _shift_dft.
     """
-    if version("scikit-image") > "0.18.3":
-        shifts = phase_cross_correlation(array_rec[0], array[frnum],
-                                         upsample_factor=upsample_factor,
-                                         reference_mask=mask,
-                                         normalization=None)
-    else:
-        shifts = phase_cross_correlation(array_rec[0], array[frnum],
-                                         upsample_factor=upsample_factor,
-                                         reference_mask=mask)
+    shifts = phase_cross_correlation(array_rec[0], array[frnum],
+                                     upsample_factor=upsample_factor,
+                                     reference_mask=mask,
+                                     normalization=None)
     # from skimage 0.22, phase_cross_correlation returns two more variables
     # in addition to the array of shifts
     if len(shifts) == 3:

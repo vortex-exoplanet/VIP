@@ -35,18 +35,6 @@ and has nothing to do with VIP. See `Working with Matplotlib on OSX <https://mat
 Matplotlib FAQ for more information.
 
 
-.. rubric:: The ``VIP`` setup.py script doesn't finish the job, it seems to be stuck.
-
-This is very unlikely to happen with the latest versions of pip, setuptools
-and ``VIP``'s setup script. If you encounter this situation just kill the process
-(Ctrl + C) and start it again by re-running the setup command. A workaround
-is to install the problematic dependency before executing ``VIP`` setup:
-
-.. code-block:: bash
-
-  $ pip install <problematic_dependency>
-
-
 .. rubric:: Why does the setup fail complaining about the lack of a Fortran compiler?
 
 Fortran compilers are apparently needed for compiling ``scipy`` from source. Make

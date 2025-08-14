@@ -7,4 +7,4 @@ coverage:
 
 ignore:
   - tests/*
-  - vip_hci/vip_ds9.py
+  - src/vip_hci/vip_ds9.py

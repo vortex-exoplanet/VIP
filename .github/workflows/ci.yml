@@ -43,19 +43,10 @@ jobs:
 #        pre-commit install-hooks
 #        pre-commit install
 #        # Run pre-commit hooks
-#        pre-commit run --files vip_hci/config/*.py
-#	 pre-commit run --files vip_hci/fits/*.py
-#	 pre-commit run --files vip_hci/fm/*.py
-#	 pre-commit run --files vip_hci/greedy/*.py
-#	 pre-commit run --files vip_hci/invprob/*.py
-#	 pre-commit run --files vip_hci/metrics/*.py
-#        pre-commit run --files vip_hci/preproc/*.py
-#        pre-commit run --files vip_hci/psfsub/*.py
-#        pre-commit run --files vip_hci/stats/*.py
-#        pre-commit run --files vip_hci/var/*.py
+#        pre-commit run --files src/**/*.py
     - name: Test with pytest
       run: |
-        pytest tests/pre_3_10 --cov=vip_hci/ --cov-report=xml --splits 3 --group ${{ matrix.group }}
+        pytest tests/pre_3_10 --cov=src --cov-report=xml --splits 3 --group ${{ matrix.group }}
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
 
@@ -87,9 +78,9 @@ jobs:
 #        pre-commit install-hooks
 #        pre-commit install
 #        # Run pre-commit hooks
-#        pre-commit run --files vip_hci/objects/*.py
+#        pre-commit run --files src/vip_hci/objects/*.py
     - name: Test with pytest
       run: |
-        pytest tests/post_3_10 --cov=vip_hci/objects/ --cov-report=xml
+        pytest tests/post_3_10 --cov=src/vpi_hci/objects/ --cov-report=xml
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3

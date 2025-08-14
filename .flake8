@@ -36,4 +36,4 @@ ignore =
     I002,
 
 exclude=
-    vip_hci/objects
+    src/vip_hci/objects

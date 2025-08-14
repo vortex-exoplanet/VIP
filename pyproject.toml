@@ -69,4 +69,4 @@ dev = [
 
 [tool.setuptools]
 zip-safe = false
-packages.find = { namespaces = false }
+packages.find = { where = ["src"], namespaces = false }

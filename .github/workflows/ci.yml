@@ -46,7 +46,7 @@ jobs:
 #        pre-commit run --files src/**/*.py
     - name: Test with pytest
       run: |
-        pytest tests/pre_3_10 --cov=src --cov-report=xml --splits 3 --group ${{ matrix.group }}
+        pytest tests/pre_3_10 --cov=src --cov-report=xml --splits 3 --group ${{ matrix.group }} --durations=50
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
 
@@ -81,6 +81,6 @@ jobs:
 #        pre-commit run --files src/vip_hci/objects/*.py
     - name: Test with pytest
       run: |
-        pytest tests/post_3_10 --cov=src/vpi_hci/objects/ --cov-report=xml
+        pytest tests/post_3_10 --cov=src/vpi_hci/objects/ --cov-report=xml --durations=50
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3

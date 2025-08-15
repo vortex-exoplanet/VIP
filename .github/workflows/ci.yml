@@ -37,7 +37,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install . --group dev
+        pip install --editable . --group dev
 #    Uncomment below when ready to deal with a lot of PEP8 formatting changes
 #    - name: Verify files with pre-commit
 #      run: |
@@ -74,7 +74,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install . --group dev
+        pip install --editable . --group dev
 #    - name: Verify files with pre-commit
 #      run: |
 #        # Setup pre-commit hooks

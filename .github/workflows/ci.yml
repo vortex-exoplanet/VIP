@@ -10,6 +10,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # drastically reduce overhead from coverage measurement (on Python 3.12+)
+  COVERAGE_CORE: sysmon
+
 jobs:
   no_object_checks:
 
@@ -20,6 +24,8 @@ jobs:
         python-version:
           - "3.10"
           - "3.11"
+          - "3.12"
+          - "3.13"
         group: [1, 2, 3]
 
     steps:

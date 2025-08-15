@@ -1,6 +1,6 @@
 [build-system]
-build-backend = "setuptools.build_meta"
-requires = ["setuptools>=77.0.0"]
+requires = ["flit_core >=3.11,<4"]
+build-backend = "flit_core.buildapi"
 
 [project]
 name = "vip_hci"
@@ -66,7 +66,3 @@ dev = [
     "sphinx_rtd_theme",
     "jupyter_sphinx",
 ]
-
-[tool.setuptools]
-zip-safe = false
-packages.find = { where = ["src"], namespaces = false }

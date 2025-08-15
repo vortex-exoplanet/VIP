@@ -46,6 +46,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "coverage>=7.10.0",
     "build",
     "twine",
     "opencv-python",
@@ -54,7 +55,6 @@ dev = [
     "myst-parser",
     "pandoc",
     "pytest",
-    "pytest-cov ~=2.6.0",
     "pytest-split",
     "flake8",
     "flake8-bandit",

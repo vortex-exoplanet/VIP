@@ -49,7 +49,8 @@ test:
 	pre-commit install-hooks
 	pre-commit install
 	pre-commit run --files src/**/*.py
-	pytest --cov=src --cov-report=xml
+	coverate run -m pytest
+	coverage xml
 	rm confi_hist.pdf
 	rm confi_hist_gaussfit.pdf
 	rm confidence.txt

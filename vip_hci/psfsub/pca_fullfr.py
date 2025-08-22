@@ -1059,7 +1059,7 @@ def _adimsdi_singlepca(
         print("{} total frames".format(n * z))
         print("Performing single-pass PCA")
 
-    if isinstance(ncomp, (int, float)):
+    if np.isscalar(ncomp):
         # When ncomp is a int and batch is not None, incremental ADI-PCA is run
         if batch is not None:
             res_cube = pca_incremental(

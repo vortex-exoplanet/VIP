@@ -122,7 +122,7 @@ def test_algos(
             algo_options["radius_int"] = res0[0][0] - 2 * ds.fwhm
             algo_options["asize"] = 4 * ds.fwhm
             algo_options["delta_rot"] = 1
-        if pca_algo == pca:
+        if pca_algo == median_sub:
             # just test it once because very slow
             sp_unc = speckle_noise_uncertainty(
                 cube_emp,

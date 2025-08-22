@@ -373,9 +373,13 @@ def pca(*all_args: List, **all_kwargs: dict):
         [full_output=True, adimsdi='single']  Residuals cube (of the big cube
         with channels and time processed together). Valid for ADI+mSDI (4D)
         cubes (when ``scale_list`` is provided)
+    cube_desc_residuals : numpy ndarray
+        [full_output=True, adimsdi='single'] Residuals cube after de-scaling the
+        spectral frames to their original scale. Valid for ADI+mSDI (4D) (when
+        ``scale_list`` is provided).
     cube_adi_residuals : numpy ndarray
-        [full_output=True, adimsdi='single'] Residuals cube (of the big cube
-        with channels and time processed together) after de-scaling the wls.
+        [full_output=True, adimsdi='single'] Residuals cube after de-scaling the
+        spectral frames to their original scale and collapsing the channels.
         Valid for ADI+mSDI (4D) (when ``scale_list`` is provided).
     ifs_adi_frames : numpy ndarray
         [full_output=True, 4D input cube, ``scale_list=None``] This is the cube
@@ -498,7 +502,8 @@ def pca(*all_args: List, **all_kwargs: dict):
                 **rot_options,
             )
             if np.isscalar(algo_params.ncomp):
-                cube_allfr_residuals, cube_adi_residuals, frame = res_pca
+                cube_allfr_residuals, cube_desc_residuals = res_pca[:2]
+                cube_adi_residuals, frame = res_pca[2:]
             elif isinstance(algo_params.ncomp, (tuple, list)):
                 if algo_params.source_xy is None:
                     if algo_params.full_output:
@@ -700,7 +705,8 @@ def pca(*all_args: List, **all_kwargs: dict):
             # ADI+mSDI single-pass PCA
             if np.isscalar(algo_params.ncomp):
                 if algo_params.full_output:
-                    return frame, cube_allfr_residuals, cube_adi_residuals
+                    return (frame, cube_allfr_residuals, cube_desc_residuals,
+                            cube_adi_residuals)
                 else:
                     return frame
             # ADI+mSDI single-pass PCA grid
@@ -1106,11 +1112,13 @@ def _adimsdi_singlepca(
             idx_ini = ifs_collapse_range[0]
             idx_fin = ifs_collapse_range[1]
 
+        cube_desc_residuals = np.zeros_like(cube)
+
         for i in Progressbar(range(n), verbose=verbose):
-            frame_i = scwave(
+            res_i = scwave(
                 res_cube[i * z + idx_ini:i * z + idx_fin],
                 scale_list[idx_ini:idx_fin],
-                full_output=False,
+                full_output=True,
                 inverse=True,
                 y_in=y_in,
                 x_in=x_in,
@@ -1118,7 +1126,8 @@ def _adimsdi_singlepca(
                 interpolation=interpolation,
                 collapse=collapse_ifs,
             )
-            resadi_cube[i] = frame_i
+            cube_desc_residuals[i] = res_i[0]
+            resadi_cube[i] = res_i[1]
 
         if verbose:
             print("De-rotating and combining residuals")
@@ -1136,7 +1145,8 @@ def _adimsdi_singlepca(
         frame = cube_collapse(der_res, mode=collapse, w=weights)
         cube_allfr_residuals = res_cube
         cube_adi_residuals = resadi_cube
-        return cube_allfr_residuals, cube_adi_residuals, frame
+        return (cube_allfr_residuals, cube_desc_residuals, cube_adi_residuals,
+                frame)
 
     # When ncomp is a tuple, pca_grid is called
     elif isinstance(ncomp, (tuple, list)):

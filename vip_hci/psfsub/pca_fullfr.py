@@ -1089,7 +1089,7 @@ def _adimsdi_singlepca(
             big_cube_ref.append(cube_resc)
 
         big_cube_ref = np.array(big_cube_ref)
-        big_cube_ref = big_cube_ref.reshape(z * n, big_cube_ref.shape[2],
+        big_cube_ref = big_cube_ref.reshape(z * nr, big_cube_ref.shape[2],
                                             big_cube_ref.shape[3])
     else:
         big_cube_ref = None

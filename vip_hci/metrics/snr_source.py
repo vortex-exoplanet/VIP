@@ -85,7 +85,7 @@ def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
     snrmap_array = np.zeros_like(array)
     width = min(sizey, sizex) / 2 - 1.5*fwhm
     mask = get_annulus_segments(array, fwhm, width, mode="mask")[0]
-    mask = np.ma.make_mask(mask)
+    mask = np.ma.make_mask(mask, shrink=False)
     # by making a bool mask *after* applying the mask to the array, we also mask
     # out zero values from the array. This logic cannot be simplified by using
     # mode="ind"!
@@ -105,7 +105,7 @@ def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
             width = min(sizey, sizex) / 2 - 1.5 * fwhm
             mask = get_annulus_segments(array, (fwhm / 2) + 1, width - 1,
                                         mode="mask")[0]
-            mask = np.ma.make_mask(mask)
+            mask = np.ma.make_mask(mask, shrink=False)
             yy, xx = np.where(mask)
             coords = [(int(x), int(y)) for (x, y) in zip(xx, yy)]
             res = pool_map(nproc, _snr_approx, array, iterable(coords), fwhm,

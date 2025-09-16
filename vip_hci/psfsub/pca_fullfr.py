@@ -129,6 +129,7 @@ class PCA_Params:
     weights: np.ndarray = None
     left_eigv: bool = False
     min_frames_pca: int = 10
+    max_frames_pca: int = None
     cube_sig: np.ndarray = None
     med_of_npcs: bool = False
 
@@ -808,6 +809,7 @@ def _adi_rdi_pca(
     cube_sig=None,
     left_eigv=False,
     min_frames_pca=10,
+    max_frames_pca=None,
     smooth=None,
     **rot_options,
 ):
@@ -905,9 +907,16 @@ def _adi_rdi_pca(
                     x1, y1 = source_xy
                     ann_center = dist(yc, xc, y1, x1)
                     pa_thr = _compute_pa_thresh(ann_center, fwhm, delta_rot)
+                    max_fr = max_frames_pca
+                    if max_frames_pca is not None:
+                        truncate = True
+                    else:
+                        truncate = False
 
                     for frame in range(n):
-                        ind = _find_indices_adi(angle_list, frame, pa_thr)
+                        ind = _find_indices_adi(angle_list, frame, pa_thr,
+                                                truncate=truncate,
+                                                max_frames=max_fr)
 
                         res_result = _project_subtract(
                             cube,
@@ -1058,7 +1067,7 @@ def _adimsdi_singlepca(
         if not scale_list.shape[0] == z:
             raise ValueError("`scale_list` has wrong length")
 
-    scale_list = check_scal_vector(scale_list)
+    # scale_list = check_scal_vector(scale_list)
     big_cube = []
 
     if verbose:
@@ -1243,6 +1252,7 @@ def _adimsdi_doublepca(
     delta_rot=None,
     fwhm=4,
     min_frames_pca=10,
+    max_frames_pca=None,
     mask_rdi=None,
     cube_sig=None,
     left_eigv=False,
@@ -1281,7 +1291,7 @@ def _adimsdi_doublepca(
             raise ValueError("Scaling factors vector is not 1d")
         if not scale_list.shape[0] == cube.shape[0]:
             raise ValueError("Scaling factors vector has wrong length")
-    scale_list = check_scal_vector(scale_list)
+    # scale_list = check_scal_vector(scale_list)
 
     if type(scaling) is not tuple:
         scaling = (scaling, scaling)
@@ -1355,7 +1365,7 @@ def _adimsdi_doublepca(
             print("Second PCA stage exploiting rotational variability")
 
         if source_xy is None:
-            if ref_strategy == 'ARSDI':
+            if 'A' in ref_strategy or cube_ref is None:  # e.g. 'ARSDI'
                 res_ifs_adi = _project_subtract(
                     res_cube_channels,
                     None,
@@ -1395,8 +1405,15 @@ def _adimsdi_doublepca(
             pa_thr = _compute_pa_thresh(ann_center, fwhm, delta_rot)
 
             res_ifs_adi = np.zeros_like(res_cube_channels)
+            max_fr = max_frames_pca
+            if max_frames_pca is not None:
+                truncate = True
+            else:
+                truncate = False
+
             for frame in range(n):
-                ind = _find_indices_adi(angle_list, frame, pa_thr)
+                ind = _find_indices_adi(angle_list, frame, pa_thr,
+                                        truncate=truncate, max_frames=max_fr)
 
                 res_result = _project_subtract(
                     res_cube_channels[:n],

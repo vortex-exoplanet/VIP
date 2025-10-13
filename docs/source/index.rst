@@ -11,7 +11,7 @@ What is VIP?
 ------------
 ``VIP`` stands for Vortex Image Processing.
 It is a python package for high-contrast imaging of exoplanets and circumstellar disks.
-VIP is compatible with Python 3.8, 3.9, 3.10 and 3.11 (Python 2 compatibility dropped with VIP 0.9.9, and Python 3.7 compatibility dropped with VIP 1.4.3).
+VIP is compatible with Python 3.10 to 3.13 (Python 2 compatibility dropped with VIP 0.9.9, and Python 3.7 compatibility dropped with VIP 1.4.3).
 
 The goal of VIP is to integrate open-source, efficient, easy-to-use and
 well-documented implementations of high-contrast image processing algorithms to

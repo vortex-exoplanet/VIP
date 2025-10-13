@@ -4,7 +4,6 @@ Tests for HCIDataset.
 
 __author__ = "Ralf Farkas"
 
-import tempfile
 import os
 import sys
 
@@ -14,7 +13,7 @@ from tests.helpers import aarc, np
 from vip_hci.objects.dataset import Dataset
 
 
-def test_saveable_dataset():
+def test_saveable_dataset(tmp_path):
     """
     Test the HCIDataset.save() and .load() methods
     """
@@ -26,7 +25,7 @@ def test_saveable_dataset():
     ds = Dataset(cube=cube, angles=angles, fwhm=fwhm)
 
     # save
-    fd, fn = tempfile.mkstemp(prefix="vip_")
+    fn = tmp_path / 'test'
     ds.save(fn)
 
     # restore
@@ -36,6 +35,3 @@ def test_saveable_dataset():
     aarc(ds2.cube, cube)
     aarc(ds2.angles, angles)
     assert ds2.fwhm == fwhm
-
-    # cleanup
-    os.remove(fn)

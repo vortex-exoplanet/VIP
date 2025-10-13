@@ -6,7 +6,7 @@ VIP - Vortex Image Processing package
 .. |VIP| image:: https://badge.fury.io/py/vip-hci.svg
         :target: https://pypi.python.org/pypi/vip-hci
 
-.. |Versions| image:: https://img.shields.io/badge/Python-3.7%2C%203.8%2C%203.9%2C%203.10%2C%203.11-brightgreen.svg
+.. |Versions| image:: https://img.shields.io/badge/Python-3.10%2C%203.11%2C%203.12%2C%203.13-brightgreen.svg
              :target: https://pypi.python.org/pypi/vip-hci
 
 .. |License| image:: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
@@ -49,7 +49,7 @@ Introduction
 ------------
 
 VIP is a python package for high-contrast imaging of exoplanets and circumstellar disks.
-VIP is compatible with Python 3.8, 3.9, 3.10 and 3.11 (Python 2 compatibility dropped with VIP 0.9.9, and Python 3.7 compatibility dropped with VIP 1.4.3).
+VIP is compatible with Python 3.10 to 3.13 (Python 2 compatibility dropped with VIP 0.9.9, and Python 3.7 compatibility dropped with VIP 1.4.3).
 
 The goal of VIP is to integrate open-source, efficient, easy-to-use and
 well-documented implementations of high-contrast image processing algorithms to
@@ -162,7 +162,7 @@ To install VIP, then simply cd into your local VIP directory, and run the instal
 .. code-block:: bash
 
    cd VIP
-   pip install -e . -r requirements-dev.txt
+   pip install -e . --group dev
 
 If cloned from your fork, make sure to link your VIP directory to the upstream
 source, to be able to easily update your local copy when a new version comes

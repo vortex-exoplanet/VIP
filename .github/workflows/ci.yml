@@ -5,6 +5,15 @@ name: ci
 
 on: [push, pull_request]
 
+concurrency:
+  # auto-cancel any in-progress job *on the same branch*
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # drastically reduce overhead from coverage measurement (on Python 3.12+)
+  COVERAGE_CORE: sysmon
+
 jobs:
   no_object_checks:
 
@@ -12,7 +21,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version:
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
         group: [1, 2, 3]
 
     steps:
@@ -24,8 +37,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install pre-commit pytest pytest-cov sphinx
-        pip install -r requirements-dev.txt
+        pip install --editable . --group dev
 #    Uncomment below when ready to deal with a lot of PEP8 formatting changes
 #    - name: Verify files with pre-commit
 #      run: |
@@ -37,19 +49,11 @@ jobs:
 #        pre-commit install-hooks
 #        pre-commit install
 #        # Run pre-commit hooks
-#        pre-commit run --files vip_hci/config/*.py
-#	 pre-commit run --files vip_hci/fits/*.py
-#	 pre-commit run --files vip_hci/fm/*.py
-#	 pre-commit run --files vip_hci/greedy/*.py
-#	 pre-commit run --files vip_hci/invprob/*.py
-#	 pre-commit run --files vip_hci/metrics/*.py
-#        pre-commit run --files vip_hci/preproc/*.py
-#        pre-commit run --files vip_hci/psfsub/*.py
-#        pre-commit run --files vip_hci/stats/*.py
-#        pre-commit run --files vip_hci/var/*.py
+#        pre-commit run --files src/**/*.py
     - name: Test with pytest
       run: |
-        pytest tests/pre_3_10 --cov=vip_hci/ --cov-report=xml --splits 3 --group ${{ matrix.group }} --durations=50
+        coverage run --source src -m pytest tests/pre_3_10 --splits 3 --group ${{ matrix.group }}
+        coverage xml
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
 
@@ -70,8 +74,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install pre-commit pytest pytest-cov sphinx
-        pip install -r requirements-dev.txt
+        pip install --editable . --group dev
 #    - name: Verify files with pre-commit
 #      run: |
 #        # Setup pre-commit hooks
@@ -82,9 +85,10 @@ jobs:
 #        pre-commit install-hooks
 #        pre-commit install
 #        # Run pre-commit hooks
-#        pre-commit run --files vip_hci/objects/*.py
+#        pre-commit run --files src/vip_hci/objects/*.py
     - name: Test with pytest
       run: |
-        pytest tests/post_3_10 --cov=vip_hci/objects/ --cov-report=xml --durations=50
+        coverage run --source=src/vip_hci/objects/ -m pytest tests/post_3_10
+        coverage xml
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3

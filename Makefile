@@ -10,11 +10,11 @@ help:
 
 pypi:
 	rm dist/*
-	python setup.py sdist bdist_wheel
+	python -m build
 	twine upload dist/*
 
 pypi-test:
-	python setup.py sdist bdist_wheel
+	python -m build
 	twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
 docs:
@@ -32,13 +32,13 @@ docs:
 	rm -f docs/source/vip_hci.stats.rst
 	rm -f docs/source/vip_hci.var.rst
 	rm -f docs/source/vip_hci.vip_ds9.rst
-	sphinx-apidoc -o docs/source vip_hci
+	sphinx-apidoc -o docs/source src/vip_hci
 	cd docs/source/
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
 
 coverage:
-	coverage run --source=vip_hci -m pytest
+	coverage run --source=src -m pytest
 	coverage report -m
 
 test:
@@ -48,18 +48,9 @@ test:
 	pre-commit install --hook-type post-rewrite
 	pre-commit install-hooks
 	pre-commit install
-	pre-commit run --files vip_hci/config/*.py
-	pre-commit run --files vip_hci/fits/*.py
-	pre-commit run --files vip_hci/fm/*.py
-	pre-commit run --files vip_hci/greedy/*.py
-	pre-commit run --files vip_hci/invprob/*.py
-	pre-commit run --files vip_hci/metrics/*.py
-	pre-commit run --files vip_hci/preproc/*.py
-	pre-commit run --files vip_hci/psfsub/*.py
-	pre-commit run --files vip_hci/stats/*.py
-	pre-commit run --files vip_hci/var/*.py
-	pre-commit run --files vip_hci/objects/*.py
-	pytest --cov=vip_hci/ --cov-report=xml
+	pre-commit run --files src/**/*.py
+	coverate run -m pytest
+	coverage xml
 	rm confi_hist.pdf
 	rm confi_hist_gaussfit.pdf
 	rm confidence.txt
@@ -68,8 +59,7 @@ test:
 	rm -rf results/
 
 pep8-format:
-	autopep8 --in-place --aggressive vip_hci/*.py
-	autopep8 --in-place --aggressive vip_hci/*/*.py
+	autopep8 --in-place --aggressive src/**/*.py
 	autopep8 --in-place --aggressive tests/*.py
 
 clean:

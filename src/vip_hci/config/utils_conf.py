@@ -12,11 +12,12 @@ import sys
 import numpy as np
 
 import itertools as itt
+from importlib.metadata import version
 from inspect import signature, Parameter
 from functools import wraps
+from pathlib import Path
 import multiprocessing
 import warnings
-from vip_hci import __version__
 
 sep = "―" * 80
 vip_figsize = (8, 5)
@@ -44,7 +45,6 @@ class Saveable(object):
 
 
         """
-
         vip_object = self.__class__.__name__
 
         if hasattr(self, "_saved_attributes"):
@@ -60,7 +60,7 @@ class Saveable(object):
                         data["_item_{}".format(a)] = True
 
                 np.savez_compressed(
-                    filename, _vip_version=__version__, _vip_object=vip_object, **data
+                    filename, _vip_version=version('vip_hci'), _vip_object=vip_object, **data
                 )
 
         else:
@@ -70,10 +70,11 @@ class Saveable(object):
 
     @classmethod
     def load(cls, filename):
+        filename = Path(filename).resolve()
         try:
             data = np.load(filename, allow_pickle=True)
-        except BaseException:
-            data = np.load(filename + ".npz", allow_pickle=True)
+        except FileNotFoundError:
+            data = np.load(filename.with_suffix(".npz"), allow_pickle=True)
 
         if "_vip_object" not in data:
             raise RuntimeError("The file you specified is not a VIP object.")
@@ -87,7 +88,7 @@ class Saveable(object):
             )
 
         file_vip_version = data["_vip_version"].item()
-        if file_vip_version != __version__:
+        if file_vip_version != version('vip_hci'):
             print(
                 "The file was saved with VIP {}. There may be some"
                 "compatibility issues. Use with care."

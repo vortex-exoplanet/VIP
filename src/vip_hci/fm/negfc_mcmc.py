@@ -933,7 +933,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
                                               mu_sigma, sigma, force_rPA]))
 
         if verbosity > 0:
-            print('emcee Ensemble sampler successful')
+            print('emcee Ensemble sampler successful', flush=True)
         start = datetime.datetime.now()
 
         # #########################################################################

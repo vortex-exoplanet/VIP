@@ -15,6 +15,7 @@ import itertools as itt
 from importlib.metadata import version
 from inspect import signature, Parameter
 from functools import wraps
+from pathlib import Path
 import multiprocessing
 import warnings
 
@@ -69,10 +70,11 @@ class Saveable(object):
 
     @classmethod
     def load(cls, filename):
+        filename = Path(filename).resolve()
         try:
             data = np.load(filename, allow_pickle=True)
-        except BaseException:
-            data = np.load(filename + ".npz", allow_pickle=True)
+        except FileNotFoundError:
+            data = np.load(filename.with_suffix(".npz"), allow_pickle=True)
 
         if "_vip_object" not in data:
             raise RuntimeError("The file you specified is not a VIP object.")

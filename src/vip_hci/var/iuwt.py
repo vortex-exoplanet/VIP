@@ -14,10 +14,10 @@ import ctypes
 def iuwt_decomposition(in1, scale_count, scale_adjust=0,
                        mode='ser', core_count=2, store_smoothed=False):
     """
-    This function serves as a handler for the different implementations of the 
-    IUWT decomposition. It allows the different methods to be used almost 
+    This function serves as a handler for the different implementations of the
+    IUWT decomposition. It allows the different methods to be used almost
     interchangeably.
-    
+
     The code was taken from [KEN15]_ and is detailed in [DAB15]_.
 
     INPUTS:

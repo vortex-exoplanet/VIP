@@ -110,20 +110,23 @@ def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
             coords = [(int(x), int(y)) for (x, y) in zip(xx, yy)]
             res = pool_map(nproc, _snr_approx, array, iterable(coords), fwhm,
                            cy, cx)
-            res = np.array(res, dtype=object)
-            yy = res[:, 0]
-            xx = res[:, 1]
-            snr_value = res[:, 2]
+            #res = np.array(res, dtype=object)
+            yy = np.array([res[i][0] for i in range(len(res))])
+            xx = np.array([res[i][1] for i in range(len(res))])
+            snr_value = np.array([res[i][2] for i in range(len(res))])
             snrmap_array[yy.astype(int), xx.astype(int)] = snr_value
 
         # computing s/n map with Mawet+14 definition
         else:
             res = pool_map(nproc, snr, array, iterable(coords), fwhm, True,
                            array2, use2alone, exclude_negative_lobes)
-            res = np.array(res, dtype=object)
-            yy = res[:, 0]
-            xx = res[:, 1]
-            snr_value = res[:, -1]
+            #res = np.array(res, dtype=object)
+            yy = np.array([res[i][0] for i in range(len(res))])
+            xx = np.array([res[i][1] for i in range(len(res))])
+            snr_value = np.array([res[i][-1] for i in range(len(res))])
+            #yy = res[:][0]
+            #xx = res[:][1]
+            #snr_value = res[:][-1]
             snrmap_array[yy.astype('int'), xx.astype('int')] = snr_value
 
     # masking known sources

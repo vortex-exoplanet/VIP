@@ -360,6 +360,10 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
         beyond the edge with zeros. With 'mirror', the input is extended by
         reflecting about the center of the last pixel. With 'wrap', the input is
         extended by wrapping around to the opposite edge. Default is 'reflect'.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     debug : bool, optional
         If True debug information is printed and plotted.
     verbose : bool, optional
@@ -517,9 +521,10 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
 
 def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
                            fit_type='moff', lbda=None, filter_freq=(0, 0),
-                           border_mode='constant', debug=False, verbose=True,
+                           border_mode='constant', imlib='vip-fft',
+                           interpolation='lanczos4', debug=False, verbose=True,
                            full_output=False):
-    """Recenter an image cube based on satellite spots (more details in `.
+    """Recenter an image cube based on satellite spots.
 
     The function relies on ``frame_center_satspots`` to align each image of the
     cube individually (details in ``vip_hci.preproc.frame_center_satspots``).
@@ -572,6 +577,10 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
         beyond the edge with zeros. With 'mirror', the input is extended by
         reflecting about the center of the last pixel. With 'wrap', the input is
         extended by wrapping around to the opposite edge. Default is 'reflect'.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     debug : bool, optional
         If True debug information is printed and plotted (fit and residuals,
         intersections and shifts). This has to be used carefully as it can
@@ -625,8 +634,9 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
         res = frame_center_satspots(array[i], final_xy[i], debug=debug,
                                     shift=True, subi_size=subi_size,
                                     sigfactor=sigfactor, fit_type=fit_type,
-                                    filter_freq=filter_freq,
-                                    verbose=False, border_mode=border_mode)
+                                    filter_freq=filter_freq, imlib=imlib,
+                                    interpolation=interpolation, verbose=False,
+                                    border_mode=border_mode)
         array_rec.append(res[0])
         shift_y[i] = res[1]
         shift_x[i] = res[2]
@@ -1630,8 +1640,8 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         plt.xlabel('Pixels')
 
         plt.figure(figsize=vip_figsize)
-        plt.plot(y, 'o-', label='shifts in y', alpha=0.5)
         plt.plot(x, 'o-', label='shifts in x', alpha=0.5)
+        plt.plot(y, 'o-', label='shifts in y', alpha=0.5)
         plt.legend(loc='best')
         plt.grid('on', alpha=0.2)
         plt.ylabel('Pixels')

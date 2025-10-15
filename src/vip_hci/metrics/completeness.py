@@ -166,7 +166,7 @@ def _estimate_snr_fc(
         mask = get_annulus_segments(frame_fin, (fwhm_med / 2) + 2, width, mode="mask")[
             0
         ]
-    bmask = np.ma.make_mask(mask)
+    bmask = np.ma.make_mask(mask, shrink=False)
     yy, xx = np.where(bmask)
 
     if approximated:

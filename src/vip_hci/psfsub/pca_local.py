@@ -334,6 +334,10 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
         global ARRAY
         ARRAY = algo_params.cube
 
+        if algo_params.cube_ref is not None:
+            global ARRAY_REF
+            ARRAY_REF = algo_params.cube_ref
+
         z, n, y_in, x_in = algo_params.cube.shape
         algo_params.fwhm = int(np.round(np.mean(algo_params.fwhm)))
         n_annuli = int((y_in / 2 - algo_params.radius_int) / algo_params.asize)
@@ -399,13 +403,44 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
             )
 
         else:
+            if algo_params.cube_ref is not None:
+                if algo_params.verbose:
+                    print("First PCA subtraction (spectral) on REF cube")
+                    print("{} spectral channels per IFS frame".format(z))
+                    print(
+                        "N annuli = {}, mean FWHM = {:.3f}".format(
+                            n_annuli, algo_params.fwhm)
+                    )
+                # apply the same first pass to cube ref
+                nr = algo_params.cube_ref.shape[0]
+                add_params['do_ref'] = True
+                add_params["fr"] = iterable(range(nr))
+                func_params_ref = setup_parameters(
+                    params_obj=algo_params, fkt=_pca_sdi_fr, as_list=True,
+                    **add_params
+                )
+                res = pool_map(
+                    algo_params.nproc,
+                    _pca_sdi_fr,
+                    verbose=algo_params.verbose,
+                    *func_params_ref,
+                )
+                residuals_cube_channels_ref = np.array(res)
+
+                # Exploiting rotational variability
+                if algo_params.verbose:
+                    timing(start_time)
+                    print("{} REF frames".format(n))
+            else:
+                residuals_cube_channels_ref = None
+
             if algo_params.verbose:
                 print("Second PCA subtraction exploiting angular variability")
 
             add_params = {
                 "cube": residuals_cube_channels,
                 "ncomp": ncomp2,
-                "cube_ref": None,
+                "cube_ref": residuals_cube_channels_ref,
             }
 
             func_params = setup_parameters(
@@ -449,15 +484,26 @@ def _pca_sdi_fr(
     collapse,
     ifs_collapse_range,
     theta_init,
+    do_ref=False
 ):
     """Optimized PCA subtraction on a multi-spectral frame (IFS data)."""
-    z, n, y_in, x_in = ARRAY.shape
-
     scale_list = check_scal_vector(scal)
-    # rescaled cube, aligning speckles
-    multispec_fr = scwave(
-        ARRAY[:, fr, :, :], scale_list, imlib=imlib, interpolation=interpolation
-    )[0]
+
+    if do_ref:  # do it on REF cube
+        z, n, y_in, x_in = ARRAY_REF.shape
+        # rescaled cube, aligning speckles
+        multispec_fr = scwave(
+            ARRAY_REF[:, fr, :, :], scale_list, imlib=imlib,
+            interpolation=interpolation
+        )[0]
+    else:  # do it on SCI cube
+        z, n, y_in, x_in = ARRAY.shape
+
+        # rescaled cube, aligning speckles
+        multispec_fr = scwave(
+            ARRAY[:, fr, :, :], scale_list, imlib=imlib,
+            interpolation=interpolation
+        )[0]
 
     # Exploiting spectral variability (radial movement)
     fwhm = int(np.round(np.mean(fwhm)))

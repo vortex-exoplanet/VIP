@@ -837,14 +837,15 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                           cx=None, fwhm=4., sig=4., protect_mask=0,
                           excl_mask=None, half_res_y=False, min_thr=None,
                           max_nit=15, mad=True, bad_values=None, verbose=True,
-                          full_output=False, nproc=1):
+                          full_output=False, debug=True, nproc=1):
     """
-    Function to identify and correct clumps of bad pixels. Very fast when a bad
-    pixel map is provided. If a bad pixel map is not provided, the bad pixel
-    clumps will be searched iteratively and replaced by the median of good
-    neighbouring pixel values, when enough of them are available. The size of
-    the box is set by the closest odd integer larger than fwhm (to avoid
-    accidentally replacing point sources).
+    Identify and correct clumps of bad pixels.
+
+    Very fast when a bad pixel map is provided. If a bad pixel map is not
+    provided, the bad pixel clumps will be searched iteratively and replaced by
+    the median of good neighbouring pixel values, when enough of them are
+    available. The size of the box is set by the closest odd integer larger than
+    fwhm (to avoid accidentally replacing point sources).
 
     Parameters
     ----------
@@ -910,6 +911,9 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
     full_output: bool, {False,True}, optional
         Whether to return as well the cube of bad pixel maps and the cube of
         defined annuli.
+    debug: bool, {False,True}, optional
+        In case the algorithm encounters a problem for a given frame of the
+        cube, whether to stop the function and write a fits file of it.
     nproc: int, optional
         This feature is added following ADACS update. Refers to the number of
         processors available for calculations. Choosing a number >1 enables
@@ -921,8 +925,8 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
         The bad pixel corrected frame/cube.
     bpix_map: 2d or 3d array
         [full_output=True] The bad pixel map or the cube of bpix maps
-    """
 
+    """
     array_corr = array.copy()
     ndims = array_corr.ndim
     assert ndims == 2 or ndims == 3, "Object is not two or three dimensional.\n"
@@ -995,9 +999,17 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
         bpm_mask = excl_mask.copy()
         if bpm_mask_ori is not None:
             bpm_mask += bpm_mask_ori.astype(bool)
-        bp = clip_array(array_corr, sig, sig, bpm_mask, out_good=False,
-                        neighbor=True, num_neighbor=neighbor_box, mad=mad,
-                        half_res_y=half_res_y)
+        try:
+            bp = clip_array(array_corr, sig, sig, bpm_mask, out_good=False,
+                            neighbor=True, num_neighbor=neighbor_box, mad=mad,
+                            half_res_y=half_res_y)
+        except AssertionError:
+            msg = "Prob with clip array using lower and upper sigma set to {},"
+            msg += "{} bad pixels in in input bad pixel mask,"
+            msg += "{} neighbours in neighbour box"
+            print(msg.format(sig, np.sum(bpm_mask), neighbor_box))
+            from vip_hci.fits import write_fits
+            write_fits("TMP.fits", array_corr)
         bpix_map = np.zeros_like(array_corr)
         bpix_map[bp] = 1
         if min_thr is not None:

@@ -191,8 +191,8 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
                                    min_neighbors=3, verbose=False)
 
 
-def clip_array(array, lower_sigma, upper_sigma, bpm_mask_ori=None, 
-               out_good=False, neighbor=False, num_neighbor=3, mad=False, 
+def clip_array(array, lower_sigma, upper_sigma, bpm_mask_ori=None,
+               out_good=False, neighbor=False, num_neighbor=3, mad=False,
                half_res_y=False):
     """Sigma clipping for detecting outlying values in 2d array. If the
     parameter 'neighbor' is True the clipping can be performed in a local patch
@@ -211,7 +211,7 @@ def clip_array(array, lower_sigma, upper_sigma, bpm_mask_ori=None,
         on top of those ones. They are not considered as good neighbours during
         sigma-clipping.
     out_good : bool, optional
-        For choosing different outputs. True to return indices of good pixels, 
+        For choosing different outputs. True to return indices of good pixels,
         False for indices of bad pixels.
     neighbor : bool, optional
         For clipping over the median of the contiguous pixels.
@@ -239,11 +239,11 @@ def clip_array(array, lower_sigma, upper_sigma, bpm_mask_ori=None,
 
     """
 
-    def _clip_array(array, lower_sigma, upper_sigma, bpm_mask_ori, 
+    def _clip_array(array, lower_sigma, upper_sigma, bpm_mask_ori,
                     out_good=False, neighbor=False, num_neighbor=3, mad=False,
                     half_res_y=False):
         """Sigma clipping for detecting outlying values in 2d array. If the
-        parameter 'neighbor' is True the clipping can be performed in a local 
+        parameter 'neighbor' is True the clipping can be performed in a local
         patch around each pixel, whose size depends on 'neighbor' parameter.
 
         Parameters
@@ -255,8 +255,8 @@ def clip_array(array, lower_sigma, upper_sigma, bpm_mask_ori=None,
         upper_sigma : float
             Value for sigma, upper boundary.
         bpm_mask_ori : 2d numpy ndarray or None
-            Known (e.g. static) bad pixel map. Additional bad pixels will be 
-            identified, on top of these ones. They are not considered as good 
+            Known (e.g. static) bad pixel map. Additional bad pixels will be
+            identified, on top of these ones. They are not considered as good
             neighbours during sigma-clipping.
         out_good : bool, optional
             For choosing different outputs.
@@ -288,7 +288,7 @@ def clip_array(array, lower_sigma, upper_sigma, bpm_mask_ori=None,
             gpm_ori = np.ones(array.shape)
         else:
             gpm_ori = np.ones(array.shape) - bpm_mask_ori
-        
+
         ny, nx = array.shape
         bpm = np.ones(array.shape)
         gpm = np.zeros(array.shape)
@@ -373,11 +373,11 @@ def clip_array(array, lower_sigma, upper_sigma, bpm_mask_ori=None,
         else:
             bad = np.where(bpm)
             return bad
-    
+
     if no_numba:
-        return _clip_array(array, lower_sigma, upper_sigma, bpm_mask_ori, 
-                           out_good=out_good, neighbor=neighbor, 
-                           num_neighbor=num_neighbor, mad=mad, 
+        return _clip_array(array, lower_sigma, upper_sigma, bpm_mask_ori,
+                           out_good=out_good, neighbor=neighbor,
+                           num_neighbor=num_neighbor, mad=mad,
                            half_res_y=half_res_y)
     else:
         _clip_array_numba = njit(_clip_array)

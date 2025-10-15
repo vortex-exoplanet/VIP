@@ -8,7 +8,9 @@ import numpy as np
 KWARGS_EXCEPTIONS = ["param"]
 
 
-def filter_duplicate_keys(filter_item: any, ref_item: any, filter_in: bool = True):
+def filter_duplicate_keys(filter_item: any,
+                          ref_item: any,
+                          filter_in: bool = True):
     """
     Filter in or out keys of an item based on a reference item.
 
@@ -30,14 +32,16 @@ def filter_duplicate_keys(filter_item: any, ref_item: any, filter_in: bool = Tru
     elif isinstance(filter_item, object):
         filter_dict = vars(filter_item).copy()
     else:
-        raise TypeError("The item to be filtered is neither a dictionnary or an object")
+        msg = "The item to be filtered is neither a dictionnary or an object"
+        raise TypeError(msg)
 
     if isinstance(ref_item, dict):
         ref_dict = ref_item.copy()
     elif isinstance(ref_item, object):
         ref_dict = vars(ref_item).copy()
     else:
-        raise TypeError("The reference item is neither a dictionnary or an object")
+        msg = "The reference item is neither a dictionnary or an object"
+        raise TypeError(msg)
 
     # Find keys that must serve as a filter for `filter_item`
     common_keys = set(filter_dict.keys()) & set(ref_dict.keys())
@@ -64,9 +68,9 @@ def setup_parameters(
     """
     Help creating a dictionnary of parameters for a given function.
 
-    Look for the exact list of parameters needed for the ``fkt`` function and takes
-    only the attributes needed from the ``params_obj``. More parameters can be
-    included with the ``**add_pararms`` dictionnary.
+    Look for the exact list of parameters needed for the ``fkt`` function and
+    take only the attributes needed from the ``params_obj``. More parameters can
+    be included with the ``**add_pararms`` dictionnary.
 
     Parameters
     ----------
@@ -83,7 +87,7 @@ def setup_parameters(
     Returns
     -------
     params_setup : dictionnary or list
-        The dictionnary comprised of parameters needed for the function, selected
+        The dictionnary comprised of parameters needed for the function selected
         amongst attributes of PostProc objects and additionnal parameters. Can
         be a list if asked for (used in specific cases such as when calling
         functions through ``vip_hci.config.utils_conf.pool_map``, see an example
@@ -93,7 +97,8 @@ def setup_parameters(
     wanted_params = OrderedDict(signature(fkt).parameters)
     # Remove dupe keys in params_obj from add_params
     if add_params is not None:
-        obj_params = filter_duplicate_keys(filter_item=params_obj, ref_item=add_params)
+        obj_params = filter_duplicate_keys(filter_item=params_obj,
+                                           ref_item=add_params)
         all_params = {**obj_params, **add_params}
     else:
         all_params = vars(params_obj)

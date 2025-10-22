@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "vip_hci"
-version = "1.6.6"
+version = "2.0.0"
 description = "Package for astronomical high-contrast image processing."
 readme = "README.rst"
 license = "MIT"

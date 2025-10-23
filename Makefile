@@ -10,10 +10,17 @@ help:
 
 pypi:
 	rm dist/*
+	rm -rf build/*
+	rm -r vip_hci.egg-info
+	pip install --upgrade pip setuptools wheel build twine
 	python -m build
 	twine upload dist/*
 
 pypi-test:
+	rm dist/*
+	rm -rf build/*
+	rm -r vip_hci.egg-info
+	pip install --upgrade pip setuptools wheel build twine
 	python -m build
 	twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 

@@ -226,7 +226,7 @@ def _snr_approx(array, source_xy, fwhm, centery, centerx):
 def indep_ap_centers(array, source_xy, fwhm, exclude_negative_lobes=False,
                      exclude_theta_range=None, no_gap=False):
     """
-    Define independent aperture centers at a given radial separation, starting
+    Define independent aperture centers at a given radial separation, starting\
     from a test location provided with source_xy.
 
     Parameters

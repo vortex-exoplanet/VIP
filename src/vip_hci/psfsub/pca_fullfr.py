@@ -301,11 +301,15 @@ def pca(*all_args: List, **all_kwargs: dict):
         and boat regions, respectively, following the denominations in [REN23]_.
         If only one mask is provided, it will be used as the anchor, and the
         boat images will not be masked (i.e., full frames used).
-    ref_strategy: str, opt {'RDI', 'ARDI'}
+    ref_strategy: str, opt {'RDI', 'ARDI', 'RSDI', 'ARSDI'}
         [cube_ref is not None] Indicates the strategy to be adopted when a
-        reference cube is provided. By default, RDI is done - i.e. the science
-        images are not used in the PCA library. If set to 'ARDI', the PCA
-        library is made of both the science and reference images.
+        reference cube is provided. By default, RDI is done for a 3D input cube,
+        while RSDI is done for a 4D input cube if a ``scale_list`` is provided
+        (otherwise RDI is done channel per channel). RSDI rescales all channels
+        to build a larger reference library available for each channel. If
+        ``ref_strategy`` is set to 'ARDI' or 'ARSDI', the PCA library is made of
+        both the science and reference images. In the case of 'ARSDI', all
+        channels (science and reference) are rescaled for a larger library.
     check_memory : bool, optional
         If True, it checks that the input cube is smaller than the available
         system memory.
@@ -1155,7 +1159,7 @@ def _adimsdi_singlepca(
             idx_ini = ifs_collapse_range[0]
             idx_fin = ifs_collapse_range[1]
 
-        cube_desc_residuals = np.zeros_like(cube)
+        cube_desc_residuals = np.zeros_like(cube[idx_ini:idx_fin])
 
         for i in Progressbar(range(n), verbose=verbose):
             res_i = scwave(

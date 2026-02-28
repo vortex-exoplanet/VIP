@@ -38,7 +38,7 @@ def cube_inject_fakedisk(
         radial separation given in the first column. This is used to apply a
         transmission profile to the fake disk.
     psf : numpy.ndarray, float or int, optional
-        The PSF to convolve the disk image with. It can be a small
+        The PSF to convolve the disk cube with. It can be a small
         numpy.ndarray (we advise to use odd sizes to make sure the center
         is not shifted through the convolution). It forces normalization of the
         PSF by default to preserve the flux. It can also be a float representing
@@ -72,6 +72,11 @@ def cube_inject_fakedisk(
         # beyond the last value of the transmission profile, we assume a transmission of 1
         interp_trans = np.interp(d, transmission[0], transmission[1], left=0, right=1)
         fakedisk *= interp_trans
+
+    nframes = len(angle_list)
+    fakedisk_cube = np.repeat(fakedisk[np.newaxis, :, :], nframes, axis=0)
+    fakedisk_cube = cube_derotate(fakedisk_cube, -angle_list, **rot_options)
+
     if psf is not None:
         if isinstance(psf, np.ndarray):
             if psf.ndim != 2:
@@ -100,11 +105,8 @@ def cube_inject_fakedisk(
                 "cube_inject_fakedisk accepts ndarray, int or "
                 "float.")
 
-        fakedisk = fftconvolve(fakedisk, psf, mode="same")
-
-    nframes = len(angle_list)
-    fakedisk_cube = np.repeat(fakedisk[np.newaxis, :, :], nframes, axis=0)
-    fakedisk_cube = cube_derotate(fakedisk_cube, -angle_list, **rot_options)
+        for i in range(nframes):
+            fakedisk_cube[i, :, :] = fftconvolve(fakedisk_cube[i, :, :], psf, mode="same")
 
     return fakedisk_cube
 

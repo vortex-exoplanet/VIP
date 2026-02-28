@@ -60,11 +60,11 @@ def frame_diff(*all_args: List, **all_kwargs: dict):
     Parameters
     ----------
     all_args: list, optional
-        Positionnal arguments for the frame diff algorithm. Full list of parameters
+        Positional arguments for the frame diff algorithm. Full list of parameters
         below.
     all_kwargs: dictionary, optional
         Mix of keyword arguments that can initialize a FrameDiffParams and the optional
-        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
+        'rot_options' dictionary, with keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``). Can also contain a FrameDiffParams named as
         `algo_params`.
@@ -122,7 +122,7 @@ def frame_diff(*all_args: List, **all_kwargs: dict):
         Median combination of the de-rotated cube.
     """
 
-    # Separating the parameters of the ParamsObject from the optionnal rot_options
+    # Separating the parameters of the ParamsObject from the optional rot_options
     class_params, rot_options = separate_kwargs_dict(
         initial_kwargs=all_kwargs, parent_class=FRAME_DIFF_Params
     )
@@ -136,13 +136,12 @@ def frame_diff(*all_args: List, **all_kwargs: dict):
     if algo_params is None:
         algo_params = FRAME_DIFF_Params(*all_args, **class_params)
 
-    global array
-    array = algo_params.cube
+    cube = algo_params.cube
 
     if algo_params.verbose:
         start_time = time_ini()
 
-    y = array.shape[1]
+    y = cube.shape[1]
     if not algo_params.asize < y // 2:
         raise ValueError("asize is too large")
 
@@ -167,6 +166,7 @@ def frame_diff(*all_args: List, **all_kwargs: dict):
     # ker = rot_options.get('ker',1)
 
     add_params = {
+        "cube": algo_params.cube,
         "ann": iterable(range(n_annuli)),
         "n_annuli": n_annuli,
         "angles": algo_params.angle_list,
@@ -195,6 +195,7 @@ def frame_diff(*all_args: List, **all_kwargs: dict):
 
 
 def _pairwise_ann(
+    cube,
     ann,
     n_annuli,
     fwhm,
@@ -218,14 +219,14 @@ def _pairwise_ann(
     """
     start_time = time_ini(False)
 
-    n_frames = array.shape[0]
+    n_frames = cube.shape[0]
 
     pa_threshold, in_rad, ann_center = _define_annuli(
         angles, ann, n_annuli, fwhm, radius_int, asize, delta_rot, 1, verbose
     )
     if ncomp is not None:
         arrayin = pca_annulus(
-            array,
+            cube,
             None,
             ncomp,
             asize,
@@ -235,11 +236,9 @@ def _pairwise_ann(
             collapse=None,
         )
     else:
-        arrayin = array
+        arrayin = cube
 
-    yy, xx = get_annulus_segments(array[0], inner_radius=in_rad, width=asize, nsegm=1)[
-        0
-    ]
+    yy, xx = get_annulus_segments(cube[0], inner_radius=in_rad, width=asize, nsegm=1)[0]
     values = arrayin[:, yy, xx]  # n_frames x n_pxs_annulus
 
     if debug:
@@ -326,7 +325,7 @@ def _pairwise_ann(
             res = values[indices[i][0]] - values[indices[i][1]]
             cube_res[i] = res
 
-    cube_out = np.zeros((cube_res.shape[0], array.shape[1], array.shape[2]))
+    cube_out = np.zeros((cube_res.shape[0], cube.shape[1], cube.shape[2]))
     for i in range(cube_res.shape[0]):
         cube_out[i, yy, xx] = cube_res[i]
 

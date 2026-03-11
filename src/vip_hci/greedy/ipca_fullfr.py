@@ -51,7 +51,7 @@ import numpy as np
 from typing import Union, List
 from ..config.paramenum import ALGO_KEY
 from ..config.utils_param import separate_kwargs_dict
-from ..config import Progressbar, timing, time_ini, time_fin
+from ..config import Progressbar, time_ini, time_fin
 from ..psfsub import pca, PCA_Params
 from ..preproc import cube_derotate, cube_collapse
 from ..metrics import stim_map, inverse_stim_map
@@ -104,20 +104,20 @@ def ipca(*all_args: List, **all_kwargs: dict):
     (e.g. negative side lobes for ADI).
 
     The first reported usage of IPCA is in [PAI18], although the algorithm
-    implementation here presented in [PAI21] for ADI or [JUI24].
+    implementation here was presented in [PAI21] for ADI and [JUI24] for ARDI.
 
     The same parameters as pca() can be provided, except 'batch'. There are two
     additional parameters related to the iterative algorithm: the number of
     iterations (nit) and the threshold (thr) used for the identification of
     significant signals.
 
-    Note: IPCA can only be used in ADI, RDI, ARDI or R+ADI modes.
+    Note: IPCA can only be used in ADI, RDI, ARDI, R+ADI or R+ARDI modes.
 
     References:
         - IPCA concept: [Pai18]
         - GreeDs implementation of IPCA: [Pai21]
-        - Torch implementation of IPCA: [JUI23]
-        - IPCA with a threshold at each iteration: [CHR24]
+        - Torch implementation of GreeDs-IPCA (mode='Juillard23'): [JUI23]
+        - IPCA with extra options (mode='Christiaens24'): [CHR24]
         - IPCA-ARDI: [JUI24]
 
     Parameters
@@ -134,66 +134,64 @@ def ipca(*all_args: List, **all_kwargs: dict):
         shortest wavelength in the cube (more thorough approaches can be used
         to get the scaling factors). This scaling factors are used to re-scale
         the spectral channels and align the speckles.
-    mode: str or None, opt {'Pairet18', 'Pairet21','Christiaens24','Juillard23'}
+    mode: str or None, opt {'Christiaens24','Juillard23'}
         Whether to run IPCA with fixed (mode=None) or incremental number of PCs
         (mode != None) as the iterations progress.
         - If None: runs with provided value of ``ncomp`` for ``nit`` iterations,
         and considering threshold ``thr``.
-        - If 'Pairet18': runs for ``ncomp`` iterations with incremental n_PCs:
-        n_PCs=1,...,``ncomp`` for the different iterations. If `nit` is provided
-        it is ignored. ``thr`` is set to 0 and ``ncomp_start`` to 1 (they are
-        ignored if provided).
-        - If 'Pairet21': runs incrementally with n_PCs=1,...,``ncomp``, and
-        ``nit`` times for each n_PCs value (i.e. outer loop on n_PCs, inner loop
-        on ``nit``). `thr`` is set to 0 and ``ncomp_start`` to 1 (they are
-        ignored if provided).
-        - If 'Christiaens24': same as 'Pairet21', but with 'ncomp_start' and
-        'thr' parameters taken into account.
         - If 'Juillard23': Exact implementation from Juillard et al. 2023 using
-        Torch. Parameter conventions are the same as in 'Christiaens24'.
-        This method has no additional options for significant
-        signal extraction and works exclusively with Torch, making it faster
-        but also more prone to propagate noise and disk flux. Installation of
-        the GreeDS package is required for this option.
+        Torch. Runs incrementally with n_PCs=1,...,``ncomp``, and
+        ``nit`` times for each n_PCs value (i.e. outer loop on n_PCs, inner loop
+        on ``nit``). This method works exclusively with Torch (making it faster)
+        but has no additional options for the extraction of circumstellar signal
+        at each iteration (all signals > 0 are considered). Installation of the
+        GreeDS package is required for this option.
+        - If 'Christiaens24': Same as 'Juillard23' but not in Torch, and with 
+        the extra parameters ``thr`` and ``ncomp_step`` available.
     ncomp : int or tuple/list of 2 or 3 int, optional
         How many PCs are used as a lower-dimensional subspace to project the
         target frames.
         - if mode is None:
-            * strategy in {'ADI', 'RDI', 'ARDI} and no ``mask_rdi`` is provided:
+            * strategy in {'ADI', 'RDI', 'ARDI'} and no ``mask_rdi`` provided:
             an int must be provided, ``ncomp`` is the fixed number of PCs to use
+            
+            * strategy in {'RADI' , 'RARDI'} and no ``mask_rdi`` is provided:
+            an int or a tuple/list of 2 int is accepted. In the latter case, the
+            first value is used for IPCA-RDI, and the second for IPCA-ADI for
+            the remaining iterations after the former converged.
+            
             * strategy in {'ADI', 'RDI', 'ARDI} and ``mask_rdi`` is provided: an
             int or a tuple/list of 2 int can be provided. In the latter case,
             the first value is used for PCA-data imputation at the first
             iteration, and the second for IPCA for the subsequent iterations.
-            * strategy = 'RADI' and no ``mask_rdi`` is provided: an int or a
-            tuple/list of 2 int is accepted. In the latter case, the first value
-            is used for IPCA-RDI, and the second for IPCA-ADI for the remaining
-            iterations after the former converged.
-            * strategy = 'RADI' and ``mask_rdi`` is provided: an int or a
-            tuple/list of 3 int can be provided. In the latter case,
+
+            * strategy in {'RADI' , 'RARDI'} and ``mask_rdi`` is provided: an
+            int or a tuple/list of 3 int can be provided. In the latter case,
             the first value is used for PCA-data imputation at the first
             iteration, the second for IPCA-RDI，and the third for IPCA-ADI for
             the remaining iterations after the former converged.
+            
          - if mode is not None:
              ncomp should correspond to the maximum number of principal
-             components to be tested. The increment will be ncomp_step.
+             components to be tested. The first ncomp will be ``ncomp_start``
+             and the increment will be ``ncomp_step``.
+             
     ncomp_start: int, opt
-        For incremental versions of iterative PCA (i.e. if mode is 'Pairet21',
-        'Christiaens24' or 'Juillard23'), this is the number of
-        principal components at the first iteration (by default 1). In some
-        cases, it is better to increase it to avoid propagating circular
-        artefacts (see [JUI24]).
+        For incremental versions of iterative PCA (i.e. if mode is 'Juillard23'
+        or 'Christiaens24'), this is the number of principal components at the
+        first iteration (by default 1). In some cases, it is better to increase
+        it to avoid propagating circular artefacts (see [JUI24]).
     ncomp_step: int, opt
         Incremental step for number of principal components - used if mode is
-        'Pairet21' or 'Christiaens24'.
+        'Christiaens24'.
     nit: int, opt
         Number of iterations for the iterative PCA.
         - if mode is None:
             total number of iterations
-        - if mode is 'Pairet18':
-            this parameter is ignored. Number of iterations will be ncomp.
-        - if mode is 'Pairet21', 'Juillard23', or 'Christiaens24':
+            
+        - if mode is 'Juillard23', or 'Christiaens24':
             iterations per tested ncomp.
+            
     strategy: str {'ADI, 'RDI', 'ARDI', 'RADI', 'RARDI''}, opt
         Whether to do iterative ADI only ('ADI'), iterative RDI only ('RDI'),
         iterative ADI and RDI together ('ARDI', i.e. with a combined PCA
@@ -203,7 +201,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
         'ARDI', 'RADI' and 'RARDI'.
     thr: float or 'auto', opt
         Minimum threshold used to identify significant signals in the PCA image
-        obtained at each iteration.
+        obtained at each iteration, according to ``thr_mode``. 
     thr_mode: str {'STIM', 'abs'}, opt
         How the threshold is expressed: whether based on the STIM map ('STIM')
         or expressed as absolute pixel intensity threshold ('abs'). The optimal
@@ -431,9 +429,15 @@ def ipca(*all_args: List, **all_kwargs: dict):
 
     start_time = time_ini(algo_params.verbose)
 
-    # force full_output
+    # force full_output but no verbose in PCA.
     pca_params['full_output'] = True
     pca_params['verbose'] = False  # too verbose otherwise
+
+    # 1. Identify exceptions
+    if algo_params.mask_rdi is not None and algo_params.mode is not None:
+        msg = "IPCA with first step initiated with data imputation is not "
+        msg += "compatible with incremental mode. Set 'mode' to None."
+        raise TypeError("")
 
     if algo_params.mode == "Juillard23":
         if no_greeds:
@@ -522,7 +526,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
             stim_cube = nstim.copy()
 
     else:
-        # 1. Prepare/format additional parameters depending on chosen options
+        # 2. Prepare/format additional parameters depending on chosen options
         mask_center_px = algo_params.mask_center_px  # None or not?
         mask_rdi_tmp = None
         if algo_params.strategy == 'ADI' and algo_params.cube_ref is None:
@@ -581,18 +585,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
         nit_ori = algo_params.nit
 
         if algo_params.mode is not None:
-            if algo_params.mode == 'Pairet18':
-                algo_params.nit = ncomp_tmp
-                final_ncomp = list(range(1, ncomp_tmp+1, ncomp_step))
-                algo_params.thr = 0
-            elif algo_params.mode == 'Pairet21':
-                final_ncomp = []
-                for npc in range(1, ncomp_tmp+1, ncomp_step):
-                    for ii in range(algo_params.nit):
-                        final_ncomp.append(npc)
-                algo_params.nit = len(final_ncomp)
-                algo_params.thr = 0
-            elif algo_params.mode == 'Christiaens24':
+            if algo_params.mode == 'Christiaens24':
                 final_ncomp = []
                 for npc in range(ncomp_start, ncomp_tmp+1, ncomp_step):
                     for ii in range(algo_params.nit):
@@ -618,10 +611,13 @@ def ipca(*all_args: List, **all_kwargs: dict):
         else:
             cube_ref_tmp = None
 
-        # 2. Get a first disc estimate, using PCA
+        # 3. Get a first disc estimate, using PCA
         pca_params['ncomp'] = final_ncomp[0]
-        pca_params['cube_ref'] = ref_cube
+        pca_params['cube'] = cube_tmp
+        pca_params['cube_ref'] = cube_ref_tmp
+        
         res = pca(**pca_params, **rot_options)
+        
         frame = res[0]
         residuals_cube = res[-2]
         residuals_cube_ = res[-1]
@@ -654,7 +650,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
             elif smooth_ker[0].ndim == 2:
                 frame = frame_filter_lowpass(frame, psf=smooth_ker[0])
 
-        # 3. Identify significant signals with STIM map
+        # 4. Identify significant signals with STIM map
         it_cube = np.zeros([algo_params.nit, frame.shape[0], frame.shape[1]])
         it_cube_nd = np.zeros_like(it_cube)
         stim_cube = np.zeros_like(it_cube)
@@ -679,7 +675,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
         stim_cube[0] = nstim.copy()
         mask_rdi_tmp = None  # after first iteration do not use it any more
 
-        # 4. Loop, updating the reference cube before projection by subtracting
+        # 5. Loop, updating the reference cube before projection by subtracting
         #   best disc estimate. This is done by providing sig_cube.
         cond_skip = False  # whether skip an iteration e.g. in incremental mode
         cond_add_nd_excess = False
@@ -813,7 +809,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
                 if cond1 or cond2:
                     # if convergence in incremental mode: skip iterations until
                     # next increment in ncomp
-                    cond_mod = algo_params.mode in ['Pairet21', 'Christiaens24']
+                    cond_mod = algo_params.mode == 'Christiaens24'
                     cond_it = (it % nit_ori != nit_ori-1)
                     cond_st = algo_params.strategy in ['ADI', 'RDI', 'ARDI']
                     cond_ad1 = cond_add_nd_excess is True
@@ -842,7 +838,8 @@ def ipca(*all_args: List, **all_kwargs: dict):
                                 break
                     if not cond_st:
                         # continue to iterate with ADI
-                        ncomp_tmp = ncomp_list[-1]
+                        # ncomp_tmp = ncomp_list[-1]  # BUG: not taking
+                        final_ncomp[:] = [ncomp_list[-1] for _ in range(len(final_ncomp))]
                         algo_params.strategy = algo_params.strategy[1:]  # -'R'
                         ref_cube = None
                         if algo_params.verbose:

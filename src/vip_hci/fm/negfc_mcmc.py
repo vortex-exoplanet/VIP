@@ -124,8 +124,9 @@ def lnlike(param, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
            aperture_radius, initial_state, cube_ref=None, svd_mode='lapack',
            scaling=None, algo=pca_annulus, delta_rot=1, fmerit='sum',
            imlib='vip-fft', interpolation='lanczos4', collapse='median',
-           algo_options={}, weights=None, transmission=None, mu_sigma=True,
-           sigma='spe+pho', force_rPA=False, debug=False):
+           algo_options={}, weights=None, transmission=None,
+           radial_gradient=False, mu_sigma=True, sigma='spe+pho',
+           force_rPA=False, debug=False):
     """Define the log-likelihood function.
 
     Parameters
@@ -227,6 +228,15 @@ def lnlike(param, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
         radial separation in pixels, while the other column(s) are the
         corresponding off-axis transmission (between 0 and 1), for either all,
         or each spectral channel (only relevant for a 4D input cube).
+    radial_gradient: bool, optional
+        Whether to apply a radial gradient to the psf image at the moment of
+        injection. By default False, i.e. the flux of the psf image is scaled
+        only considering the value of transmission at the exact radius the
+        companion is injected (e.g. this is the case for the vortex
+        coronagraph). Setting it to True may better represent the transmission
+        at the very edge of a physical mask (e.g. ALC) or the effect on the
+        light distribution of a marginally extended source near the IWA of the
+        coronagraph.
     mu_sigma: tuple of 2 floats or None, opt
         If set to None: not used, and falls back to original version of the
         algorithm, using fmerit. Otherwise, should be a tuple of 2 elements,
@@ -292,6 +302,7 @@ def lnlike(param, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
                                         theta=theta0, imlib=imlib_sh,
                                         interpolation=interpolation,
                                         transmission=transmission,
+                                        radial_gradient=radial_gradient,
                                         verbose=False)
     # Perform PCA and extract the zone of interest
     values = get_values_optimize(cube_negfc, angs, ncomp, annulus_width,
@@ -334,8 +345,9 @@ def lnprob(param, bounds, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
            aperture_radius, initial_state, cube_ref=None, svd_mode='lapack',
            scaling=None, algo=pca_annulus, delta_rot=1, fmerit='sum',
            imlib='vip-fft', interpolation='lanczos4', collapse='median',
-           algo_options={}, weights=None, transmission=None, mu_sigma=True,
-           sigma='spe+pho', force_rPA=False, display=False):
+           algo_options={}, weights=None, transmission=None,
+           radial_gradient=False, mu_sigma=True, sigma='spe+pho',
+           force_rPA=False, display=False):
     """Define the log-probability function as the sum between the prior and\
     log-likelihood funtions.
 
@@ -443,6 +455,15 @@ def lnprob(param, bounds, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
         radial separation in pixels, while the other column(s) are the
         corresponding off-axis transmission (between 0 and 1), for either all,
         or each spectral channel (only relevant for a 4D input cube).
+    radial_gradient: bool, optional
+        Whether to apply a radial gradient to the psf image at the moment of
+        injection. By default False, i.e. the flux of the psf image is scaled
+        only considering the value of transmission at the exact radius the
+        companion is injected (e.g. this is the case for the vortex
+        coronagraph). Setting it to True may better represent the transmission
+        at the very edge of a physical mask (e.g. ALC) or the effect on the
+        light distribution of a marginally extended source near the IWA of the
+        coronagraph.
     mu_sigma: tuple of 2 floats or None, opt
         If set to None: not used, and falls back to original version of the
         algorithm, using fmerit. Otherwise, should be a tuple of 2 elements,
@@ -476,7 +497,8 @@ def lnprob(param, bounds, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
                        ncomp, aperture_radius, initial_state, cube_ref,
                        svd_mode, scaling, algo, delta_rot, fmerit, imlib,
                        interpolation, collapse, algo_options, weights,
-                       transmission, mu_sigma, sigma, force_rPA)
+                       transmission, radial_gradient, mu_sigma, sigma,
+                       force_rPA)
 
 
 def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
@@ -486,11 +508,12 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
                         scaling=None, delta_rot=1, imlib='vip-fft',
                         interpolation='lanczos4', collapse='median',
                         algo_options={}, wedge=None, weights=None,
-                        transmission=None, nwalkers=100, bounds=None, a=2.0,
-                        burnin=0.3, rhat_threshold=1.01, rhat_count_threshold=1,
-                        niteration_min=10, niteration_limit=10000,
-                        niteration_supp=0, check_maxgap=20, conv_test='ac',
-                        ac_c=50, ac_count_thr=3, nproc=1, output_dir='results/',
+                        transmission=None, radial_gradient=False, nwalkers=100,
+                        bounds=None, a=2.0, burnin=0.3, rhat_threshold=1.01,
+                        rhat_count_threshold=1, niteration_min=10,
+                        niteration_limit=10000, niteration_supp=0,
+                        check_maxgap=20, conv_test='ac', ac_c=50,
+                        ac_count_thr=3, nproc=1, output_dir='results/',
                         output_file=None, display=False, verbosity=0,
                         save=False):
     r"""Run an affine invariant mcmc sampling algorithm to determine position
@@ -681,6 +704,15 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
         radial separation in pixels, while the other column(s) are the
         corresponding off-axis transmission (between 0 and 1), for either all,
         or each spectral channel (only relevant for a 4D input cube).
+    radial_gradient: bool, optional
+        Whether to apply a radial gradient to the psf image at the moment of
+        injection. By default False, i.e. the flux of the psf image is scaled
+        only considering the value of transmission at the exact radius the
+        companion is injected (e.g. this is the case for the vortex
+        coronagraph). Setting it to True may better represent the transmission
+        at the very edge of a physical mask (e.g. ALC) or the effect on the
+        light distribution of a marginally extended source near the IWA of the
+        coronagraph.
     nwalkers: int optional
         The number of [GOO10]_ 'walkers'.
     bounds: numpy.array or list, default=None, optional
@@ -929,7 +961,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
                                               cube_ref, svd_mode, scaling, algo,
                                               delta_rot, fmerit, imlib,
                                               interpolation, collapse,
-                                              algo_options, weights, transmission,
+                                              algo_options, weights,
+                                              transmission, radial_gradient,
                                               mu_sigma, sigma, force_rPA]))
 
         if verbosity > 0:

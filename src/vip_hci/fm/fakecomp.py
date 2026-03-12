@@ -852,7 +852,9 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
         only considering the value of transmission at the exact radius the
         companion is injected (e.g. this is the case for the vortex
         coronagraph). Setting it to True may better represent the transmission
-        at the very edge of a physical mask though (e.g. ALC).
+        at the very edge of a physical mask (e.g. ALC) or the effect on the
+        light distribution of a marginally extended source near the IWA of the
+        coronagraph.
 
     Returns
     -------

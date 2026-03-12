@@ -21,10 +21,11 @@ from .negfc_mcmc import confidence
 def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
                               psfn, fwhm, aperture_radius, opp_ang=False,
                               indep_ap=False, cube_ref=None, fmerit='sum',
-                              algo_options={}, transmission=None, mu_sigma=None,
-                              wedge=None, weights=None, force_rPA=False,
-                              ndet=None, nproc=None, simplex_options=None,
-                              bins=None, save=False, output=None, verbose=True,
+                              algo_options={}, transmission=None,
+                              radial_gradient=False, mu_sigma=None, wedge=None,
+                              weights=None, force_rPA=False, ndet=None,
+                              nproc=None, simplex_options=None, bins=None,
+                              save=False, output=None, verbose=True,
                               full_output=True, plot=False, sigma_trim=None):
     """
     Step-by-step procedure used to determine the speckle noise uncertainty\
@@ -92,6 +93,15 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         Array with 2 columns. First column is the radial separation in pixels.
         Second column is the off-axis transmission (between 0 and 1) at the
         radial separation given in column 1.
+    radial_gradient: bool, optional
+        Whether to apply a radial gradient to the psf image at the moment of
+        injection. By default False, i.e. the flux of the psf image is scaled
+        only considering the value of transmission at the exact radius the
+        companion is injected (e.g. this is the case for the vortex
+        coronagraph). Setting it to True may better represent the transmission
+        at the very edge of a physical mask (e.g. ALC) or the effect on the
+        light distribution of a marginally extended source near the IWA of the
+        coronagraph.
     mu_sigma: tuple of 2 floats, bool or None, opt
         If set to None: not used, and falls back to original version of the
         algorithm, using fmerit.
@@ -235,7 +245,8 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         planet_parameter[0, 2] = f_true
     cube_pf = cube_planet_free(planet_parameter, cube, derot_angles, psfn,
                                imlib=imlib, interpolation=interpolation,
-                               transmission=transmission)
+                               transmission=transmission,
+                               radial_gradient=radial_gradient)
 
     # Measure mu and sigma once in the annulus (instead of each MCMC step)
     if isinstance(mu_sigma, tuple):
@@ -261,7 +272,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     res = pool_map(nproc, _estimate_speckle_one_angle, iterable(angle_range),
                    cube_pf, psfn, derot_angles, r_true, f_true, fwhm,
                    aperture_radius, cube_ref, fmerit, algo, algo_options,
-                   transmission, mu_sigma, weights, force_rPA, ndet,
+                   transmission, radial_gradient, mu_sigma, weights, force_rPA, ndet,
                    simplex_options, imlib, interpolation, verbose=verbose)
     residuals = np.array(res)
 
@@ -269,9 +280,9 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         res = pool_map(nproc, _estimate_speckle_one_angle,
                        iterable(angle_range), cube_pf, psfn, -derot_angles,
                        r_true, f_true, fwhm, aperture_radius, cube_ref, fmerit,
-                       algo, algo_options, transmission, mu_sigma, weights,
-                       force_rPA, ndet, simplex_options, imlib, interpolation,
-                       verbose=verbose)
+                       algo, algo_options, transmission, radial_gradient,
+                       mu_sigma, weights, force_rPA, ndet, simplex_options,
+                       imlib, interpolation, verbose=verbose)
         residuals2 = np.array(res)
         residuals = np.concatenate((residuals, residuals2))
 
@@ -354,9 +365,10 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
 
 def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true,
                                 fwhm, aperture_radius, cube_ref, fmerit, algo,
-                                algo_options, transmission, mu_sigma, weights,
-                                force_rPA, ndet, simplex_options, imlib,
-                                interpolation, verbose=True):
+                                algo_options, transmission, radial_gradient,
+                                mu_sigma, weights, force_rPA, ndet,
+                                simplex_options, imlib, interpolation,
+                                verbose=True):
 
     if verbose:
         print('Process is running for angle: {:.2f}'.format(angle))
@@ -364,6 +376,7 @@ def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true,
     cube_fc = cube_inject_companions(cube_pf, psfn, angs, flevel=f_true,
                                      rad_dists=[r_true], n_branches=1,
                                      theta=angle, transmission=transmission,
+                                     radial_gradient=radial_gradient,
                                      imlib=imlib, interpolation=interpolation,
                                      verbose=False)
 
@@ -382,10 +395,12 @@ def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true,
     res_simplex = firstguess_simplex(p_ini, cube_fc, angs,
                                      psfn, ncomp, fwhm, annulus_width,
                                      aperture_radius, cube_ref=cube_ref,
-                                     fmerit=fmerit, algo=algo, delta_rot=delta_rot,
+                                     fmerit=fmerit, algo=algo,
+                                     delta_rot=delta_rot,
                                      algo_options=algo_options, imlib=imlib,
                                      interpolation=interpolation,
                                      transmission=transmission,
+                                     radial_gradient=radial_gradient,
                                      mu_sigma=mu_sigma, weights=weights,
                                      force_rPA=force_rPA, ndet=ndet,
                                      options=simplex_options,

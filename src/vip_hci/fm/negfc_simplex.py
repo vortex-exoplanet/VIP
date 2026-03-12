@@ -826,7 +826,10 @@ def firstguess(cube, angs, psfn, planets_xy_coord, ncomp=1, fwhm=4,
                                      verbose=False)
             if force_rPA:
                 r_0[i_planet], theta_0[i_planet] = (r_pre, theta_pre)
-                f_0[i_planet] = res.x[:]
+                if len(res.x[:]) == 1:
+                    f_0[i_planet] = res.x[0]
+                else:
+                    f_0[i_planet] = res.x[:]
             else:
                 r_0[i_planet] = res.x[0]
                 theta_0[i_planet] = res.x[1]

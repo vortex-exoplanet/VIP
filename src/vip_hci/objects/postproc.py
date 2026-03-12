@@ -17,7 +17,6 @@ from typing import (
     Tuple,
     Union,
     Optional,
-    NoReturn,
     Callable,
     List,
 )
@@ -26,17 +25,24 @@ import numpy as np
 from hciplot import plot_frames
 from sklearn.base import BaseEstimator
 from functools import cached_property
-
 from .dataset import Dataset
 from ..config.paramenum import ALL_FITS
 from ..config.utils_conf import algo_calculates_decorator as calculates
 from ..config.utils_param import print_algo_params
-from ..fits import write_fits, open_fits, dict_to_fitsheader, fitsheader_to_dict
+from ..fits import (
+    write_fits,
+    open_fits,
+    dict_to_fitsheader,
+    fitsheader_to_dict,
+)
 from ..metrics import snrmap, snr, significance
 from ..var import frame_center
 
-PROBLEMATIC_ATTRIBUTE_NAMES = ["_repr_html_", "_estimator_html_repr",
-                               "_doc_link_template"]
+PROBLEMATIC_ATTRIBUTE_NAMES = [
+    "_repr_html_",
+    "_estimator_html_repr",
+    "_doc_link_template",
+]
 LAST_SESSION = -1
 ALL_SESSIONS = -2
 DATASET_PARAM = "dataset"
@@ -122,7 +128,9 @@ class PPResult:
         for session in self.sessions:
             if session.frame.shape == frame.shape:
                 if (
-                    np.allclose(np.abs(session.frame), np.abs(frame), atol=1e-3)
+                    np.allclose(
+                        np.abs(session.frame), np.abs(frame), atol=1e-3
+                    )
                     and snr_map is not None
                 ):
                     session.snr_map = snr_map
@@ -206,13 +214,16 @@ class PPResult:
                 # Adding a specific prefix to identify the PostProc parameters when
                 # extracting the header
                 prefix_dict = {
-                    PREFIX + key: value for key, value in session.parameters.items()
+                    PREFIX + key: value
+                    for key, value in session.parameters.items()
                 }
                 fits_header = dict_to_fitsheader(prefix_dict)
                 headers.append(fits_header)
 
             write_fits(
-                fitsfilename=filepath, array=tuple(images), header=tuple(headers)
+                fitsfilename=filepath,
+                array=tuple(images),
+                header=tuple(headers),
             )
 
             print(f"Results saved successfully to {filepath} !")
@@ -222,7 +233,9 @@ class PPResult:
                 " a session with the function `register_session`."
             )
 
-    def fits_to_results(self, filepath: str, session_id: int = ALL_FITS) -> None:
+    def fits_to_results(
+        self, filepath: str, session_id: int = ALL_FITS
+    ) -> None:
         """
         Load all configurations from a fits file.
 
@@ -231,8 +244,9 @@ class PPResult:
         filepath: str
             The path of the FITS file.
         """
-        data, header = open_fits(fitsfilename=filepath, n=session_id,
-                                 header=True)
+        data, header = open_fits(
+            fitsfilename=filepath, n=session_id, header=True
+        )
         self.sessions = []
         if session_id == ALL_FITS:
             for index, element in enumerate(data):
@@ -249,7 +263,10 @@ class PPResult:
                 else:
                     frame = element
                 self.register_session(
-                    frame=frame, algo_name=algo_name, params=parameters, snr_map=snr_map
+                    frame=frame,
+                    algo_name=algo_name,
+                    params=parameters,
+                    snr_map=snr_map,
                 )
         else:
             frame = None
@@ -265,7 +282,10 @@ class PPResult:
             else:
                 frame = data
             self.register_session(
-                frame=frame, algo_name=algo_name, params=parameters, snr_map=snr_map
+                frame=frame,
+                algo_name=algo_name,
+                params=parameters,
+                snr_map=snr_map,
             )
 
     def _show_single_session(
@@ -410,7 +430,9 @@ class PostProc(BaseEstimator):
         radius = np.sqrt(
             (center_y - source_xy[1]) ** 2 + (center_x - source_xy[0]) ** 2
         )
-        self.signf = significance(snr_sig, radius, self.fwhm, student_to_gauss=True)
+        self.signf = significance(
+            snr_sig, radius, self.fwhm, student_to_gauss=True
+        )
         print(r"{:.1f} sigma detection".format(self.signf))
 
     def _update_dataset(self, dataset: Optional[Dataset] = None) -> None:
@@ -527,18 +549,21 @@ class PostProc(BaseEstimator):
     #                 )
 
     #     return calculations
-    
+
     @cached_property
     def _get_calculations(self) -> dict:
         """
         Cached mapping of calculated attributes to their methods.
+
         Computed once using vars() to avoid dir(self)/sklearn recursion.
         """
         calculations = {}
         for element in vars(self):  # safer than dir(self)
             if element not in PROBLEMATIC_ATTRIBUTE_NAMES:
                 try:
-                    for k in getattr(getattr(self, element), "_calculates", []):
+                    for k in getattr(
+                        getattr(self, element), "_calculates", []
+                    ):
                         calculations[k] = element
                 except (AttributeError, TypeError):
                     pass
@@ -562,11 +587,14 @@ class PostProc(BaseEstimator):
                 pass  # attribute/result was not calculated yet. Skip.
 
     def __getattr__(self, name):
-        """
-        Raises clear error if attr not yet calculated.
-        """
-        if name.startswith('_') or name in ('_get_calculations', '_calculations_cache'):
-            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+        """Raise clear error if attr not yet calculated."""
+        if name.startswith("_") or name in (
+            "_get_calculations",
+            "_calculations_cache",
+        ):
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'"
+            )
 
         # Check if this is a calculated property
         calculations = self._get_calculations()
@@ -575,7 +603,9 @@ class PostProc(BaseEstimator):
             # Return the calculated value
             return calculations[name]
 
-        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+        raise AttributeError(
+            f"'{type(self).__name__}' object has no attribute '{name}'"
+        )
 
     def _show_attribute_help(self, function_name: Callable) -> None:
         """
@@ -664,7 +694,9 @@ class PostProc(BaseEstimator):
         self.detection_map = self.snr_map
 
         if self.results is not None:
-            self.results.register_session(frame=self.frame_final, snr_map=self.snr_map)
+            self.results.register_session(
+                frame=self.frame_final, snr_map=self.snr_map
+            )
 
     def save(self, filename: str) -> None:
         """

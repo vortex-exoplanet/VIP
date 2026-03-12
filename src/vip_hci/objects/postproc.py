@@ -25,6 +25,7 @@ from typing import (
 import numpy as np
 from hciplot import plot_frames
 from sklearn.base import BaseEstimator
+from functools import cached_property
 
 from .dataset import Dataset
 from ..config.paramenum import ALL_FITS
@@ -474,57 +475,73 @@ class PostProc(BaseEstimator):
         print_algo_params(res[session_id].parameters)
 
     # TODO : identify the problem around the element `_repr_html_`
-    def _get_calculations(self, debug=False) -> dict:
+    # def _get_calculations(self, debug=False) -> dict:
+    #     """
+    #     Get a list of all attributes which are *calculated*.
+
+    #     This iterates over all the elements in an object and finds the functions
+    #     which were decorated with ``@calculates`` (which are identified by the
+    #     function attribute ``_calculates``). It then stores the calculated
+    #     attributes, together with the corresponding method, and returns it.
+
+    #     Returns
+    #     -------
+    #     calculations : dict
+    #         Dictionary mapping a single "calculated attribute" to the method
+    #         which calculates it.
+
+    #     """
+    #     calculations = {}
+    #     for element in vars(self):  # replace dir(self)
+    #         # BLACKMAGIC : _repr_html_ must be skipped
+    #         """
+    #         `_repr_html_` is an element of the directory of the PostProc object
+    #         which causes the search of calculated attributes to overflow,
+    #         looping indefinitely and never reaching the actual elements
+    #         containing those said attributes. It will be skipped until the issue
+    #         has been properly identified and fixed. You can set debug=True to
+    #         observe how the directory loops after reaching that element -
+    #         acknowledging you are not skipping it.
+    #         """
+    #         if element not in PROBLEMATIC_ATTRIBUTE_NAMES:
+    #             try:
+    #                 if debug:
+    #                     print(
+    #                         "directory element : ",
+    #                         element,
+    #                         ", calculations list : ",
+    #                         calculations,
+    #                     )
+    #                 for k in getattr(getattr(self, element), "_calculates"):
+    #                     calculations[k] = element
+    #             except AttributeError:
+    #                 pass
+    #         # below can be commented after debug
+    #         else:
+    #             if debug:
+    #                 print(
+    #                     "directory element SKIPPED: ",
+    #                     element,
+    #                     ", calculations list : ",
+    #                     calculations,
+    #                 )
+
+    #     return calculations
+    
+    @cached_property
+    def _get_calculations(self) -> dict:
         """
-        Get a list of all attributes which are *calculated*.
-
-        This iterates over all the elements in an object and finds the functions
-        which were decorated with ``@calculates`` (which are identified by the
-        function attribute ``_calculates``). It then stores the calculated
-        attributes, together with the corresponding method, and returns it.
-
-        Returns
-        -------
-        calculations : dict
-            Dictionary mapping a single "calculated attribute" to the method
-            which calculates it.
-
+        Cached mapping of calculated attributes to their methods.
+        Computed once using vars() to avoid dir(self)/sklearn recursion.
         """
         calculations = {}
-        for element in dir(self):
-            # BLACKMAGIC : _repr_html_ must be skipped
-            """
-            `_repr_html_` is an element of the directory of the PostProc object
-            which causes the search of calculated attributes to overflow,
-            looping indefinitely and never reaching the actual elements
-            containing those said attributes. It will be skipped until the issue
-            has been properly identified and fixed. You can set debug=True to
-            observe how the directory loops after reaching that element -
-            acknowledging you are not skipping it.
-            """
+        for element in vars(self):  # safer than dir(self)
             if element not in PROBLEMATIC_ATTRIBUTE_NAMES:
                 try:
-                    if debug:
-                        print(
-                            "directory element : ",
-                            element,
-                            ", calculations list : ",
-                            calculations,
-                        )
-                    for k in getattr(getattr(self, element), "_calculates"):
+                    for k in getattr(getattr(self, element), "_calculates", []):
                         calculations[k] = element
-                except AttributeError:
+                except (AttributeError, TypeError):
                     pass
-            # below can be commented after debug
-            else:
-                if debug:
-                    print(
-                        "directory element SKIPPED: ",
-                        element,
-                        ", calculations list : ",
-                        calculations,
-                    )
-
         return calculations
 
     def _reset_results(self) -> None:
@@ -544,19 +561,29 @@ class PostProc(BaseEstimator):
             except AttributeError:
                 pass  # attribute/result was not calculated yet. Skip.
 
+    # def __getattr__(self, attr: str) -> NoReturn:
+    #     """
+    #     ``__getattr__`` is only called when an attribute does *not* exist.
+
+    #     Catching this event allows us to output proper error messages when an
+    #     attribute was not calculated yet.
+    #     """
+    #     calculations = self._get_calculations()
+    #     if attr in calculations:
+    #         msg = f"The {attr} was not calculated yet. "
+    #         msg += f"Call {calculations[attr]} first."
+    #         raise AttributeError(msg)
+    #     # this raises a regular AttributeError:
+    #     return self.__getattribute__(attr)
+    
     def __getattr__(self, attr: str) -> NoReturn:
         """
-        ``__getattr__`` is only called when an attribute does *not* exist.
-
-        Catching this event allows us to output proper error messages when an
-        attribute was not calculated yet.
+        Raises clear error if attr not yet calculated.
         """
-        calculations = self._get_calculations()
-        if attr in calculations:
+        if attr in self._get_calculations:
             msg = f"The {attr} was not calculated yet. "
-            msg += f"Call {calculations[attr]} first."
+            msg += f"Call {self._calculations[attr]} first."
             raise AttributeError(msg)
-        # this raises a regular AttributeError:
         return self.__getattribute__(attr)
 
     def _show_attribute_help(self, function_name: Callable) -> None:

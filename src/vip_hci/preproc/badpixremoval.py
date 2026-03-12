@@ -398,7 +398,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
                 kwargs = args[2]
                 mp_clean_isolated(*pargs, **kwargs)
 
-            context = multiprocessing.get_context('fork')
+            context = multiprocessing.get_context("fork")
             pool = context.Pool(processes=nproc, maxtasksperchild=1)
 
             args = []
@@ -1159,7 +1159,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                 def _mp_clump_slow(args):
                     mp_clump_slow(*args)
 
-                context = multiprocessing.get_context('fork')
+                context = multiprocessing.get_context("fork")
                 pool = context.Pool(processes=nproc, maxtasksperchild=1)
                 args = []
                 for i in range(n_z):
@@ -1232,7 +1232,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
 
                 def _mp_clean_clump(args):
                     mp_clean_clump(*args)
-                context = multiprocessing.get_context('fork')
+                context = multiprocessing.get_context("fork")
                 pool = context.Pool(processes=nproc, maxtasksperchild=1)
                 args = []
                 for j in range(n_z):

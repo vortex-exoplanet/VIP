@@ -580,7 +580,8 @@ class PostProc(BaseEstimator):
         the stored results are reset using this function every time the ``run``
         method is called.
         """
-        for attr in self._get_calculations():
+        calculations = self._get_calculations()
+        for attr in calculations:
             try:
                 delattr(self, attr)
             except AttributeError:

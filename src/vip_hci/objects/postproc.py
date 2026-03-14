@@ -24,7 +24,6 @@ from typing import (
 import numpy as np
 from hciplot import plot_frames
 from sklearn.base import BaseEstimator
-from functools import cached_property
 from .dataset import Dataset
 from ..config.paramenum import ALL_FITS
 from ..config.utils_conf import algo_calculates_decorator as calculates
@@ -550,7 +549,6 @@ class PostProc(BaseEstimator):
 
     #     return calculations
 
-    @cached_property
     def _get_calculations(self) -> dict:
         """
         Cached mapping of calculated attributes to their methods.

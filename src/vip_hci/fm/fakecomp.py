@@ -31,7 +31,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
                            plsc=None, n_branches=1, theta=0, imlib='vip-fft',
                            interpolation='lanczos4', transmission=None,
                            radial_gradient=False, full_output=False,
-                           verbose=False, nproc=1):
+                           verbose=False, nproc=1, copy_array=True):
     """Inject fake companions in branches and given radial distances in an ADI\
     cube.
 
@@ -39,7 +39,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
     ----------
     array : 3d/4d numpy ndarray
         Input cube. This is copied before the injections take place, so
-        ``array`` is never modified.
+        ``array`` is never modified. This behavior can be modified by ``copy_array``.
     psf_template : 2d/3d numpy ndarray
         [for a 3D input array] 2d array with the normalized PSF template, with
         an odd or even shape. The PSF image must be centered wrt to the array.
@@ -96,6 +96,9 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
     nproc: int or None, optional
         Number of CPUs to use for multiprocessing. If None, will be
         automatically set to half the number of available CPUs.
+    copy_array: bool, optional
+        If True, ``array`` is not copied before injection. This is intended for 
+        computing performance when ``array`` can be modified.
 
     Returns
     -------
@@ -115,7 +118,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
     def _cube_inject_adi(array, psf_template, angle_list, flevel, plsc,
                          rad_dists, n_branches=1, theta=0, imlib='vip-fft',
                          interpolation='lanczos4', transmission=None,
-                         radial_gradient=False, verbose=False):
+                         radial_gradient=False, copy_array=True, verbose=False):
         if np.isscalar(flevel):
             flevel = np.ones_like(angle_list)*flevel
 
@@ -138,7 +141,11 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
                 fc_fr[fr] = psf_template[fr]
 
         psf_trans = None
-        array_out = array.copy()
+        if copy_array:
+            array_out = array.copy()
+        else:
+            array_out = array
+
 
         for branch in range(n_branches):
             ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)

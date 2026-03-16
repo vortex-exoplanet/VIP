@@ -36,6 +36,7 @@ def chisquare(
     interpolation="lanczos4",
     algo_options={},
     transmission=None,
+    radial_gradient=False,
     mu_sigma=(0, 1),
     weights=None,
     force_rPA=False,
@@ -147,6 +148,15 @@ def chisquare(
         Array with 2 columns. First column is the radial separation in pixels.
         Second column is the off-axis transmission (between 0 and 1) at the
         radial separation given in column 1.
+    radial_gradient: bool, optional
+        Whether to apply a radial gradient to the psf image at the moment of
+        injection. By default False, i.e. the flux of the psf image is scaled
+        only considering the value of transmission at the exact radius the
+        companion is injected (e.g. this is the case for the vortex
+        coronagraph). Setting it to True may better represent the transmission
+        at the very edge of a physical mask (e.g. ALC) or the effect on the
+        light distribution of a marginally extended source near the IWA of the
+        coronagraph.
     mu_sigma: tuple of 2 floats or None, opt
         If set to None: not used, and falls back to original version of the
         algorithm, using fmerit.
@@ -241,6 +251,7 @@ def chisquare(
         imlib=imlib_sh,
         interpolation=interpolation,
         transmission=transmission,
+        radial_gradient=radial_gradient, 
         verbose=False
     )
 

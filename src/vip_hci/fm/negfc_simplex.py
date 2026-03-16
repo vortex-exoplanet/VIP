@@ -28,9 +28,9 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
                           imlib='skimage', interpolation='biquintic',
                           collapse='median', algo=pca_annulus, delta_rot=1,
                           algo_options={}, f_range=None, transmission=None,
-                          mu_sigma=(0, 1), weights=None, ndet=None,
-                          bin_spec=False, plot=False, verbose=True, save=False,
-                          debug=False, full_output=False):
+                          radial_gradient=True, mu_sigma=(0, 1), weights=None,
+                          ndet=None, bin_spec=False, plot=False, verbose=True,
+                          save=False, debug=False, full_output=False):
     """Determine a first guess for the flux of a companion at a given position\
     in the cube by doing a simple grid search evaluating the reduced chi2 using\
     the negative fake companion technique (i.e. the reduced chi2 is calculated\
@@ -137,6 +137,15 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
         Array with 2 columns. First column is the radial separation in pixels.
         Second column is the off-axis transmission (between 0 and 1) at the
         radial separation given in column 1.
+    radial_gradient: bool, optional
+        Whether to apply a radial gradient to the psf image at the moment of
+        injection. By default False, i.e. the flux of the psf image is scaled
+        only considering the value of transmission at the exact radius the
+        companion is injected (e.g. this is the case for the vortex
+        coronagraph). Setting it to True may better represent the transmission
+        at the very edge of a physical mask (e.g. ALC) or the effect on the
+        light distribution of a marginally extended source near the IWA of the
+        coronagraph.
     mu_sigma: tuple of 2 floats or None, opt
         If set to None: not used, and falls back to original version of the
         algorithm, using fmerit. Otherwise, should be a tuple of 2 elements,
@@ -187,8 +196,8 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
                        interpolation='lanczos4', collapse='median',
                        algo=pca_annulus, delta_rot=1, algo_options={},
                        f_range=np.geomspace(1e-1, 1e4, 30), transmission=None,
-                       mu_sigma=None, weights=None, ndet=None, bin_spec=False,
-                       verbose=True, debug=False):
+                       radial_gradient=False, mu_sigma=None, weights=None,
+                       ndet=None, bin_spec=False, verbose=True, debug=False):
 
         chi2r = []
         if verbose:
@@ -210,8 +219,8 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
                                    ncomp, cube_ref, svd_mode, scaling, fmerit,
                                    collapse, algo, delta_rot, imlib,
                                    interpolation, algo_options, transmission,
-                                   mu_sigma, weights, False, ndet, bin_spec,
-                                   debug))
+                                   radial_gradient, mu_sigma, weights, False, ndet,
+                                   bin_spec, debug))
             if chi2r[j] > chi2r[j-1]:
                 counter += 1
             if counter == 4:
@@ -240,9 +249,10 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
                                interpolation=interpolation, collapse=collapse,
                                algo=algo, delta_rot=delta_rot,
                                algo_options=algo_options, f_range=f_range,
-                               transmission=transmission, mu_sigma=mu_sigma,
-                               weights=weights, ndet=ndet, bin_spec=bin_spec,
-                               verbose=verbose, debug=debug)
+                               transmission=transmission,
+                               radial_gradient=radial_gradient,
+                               mu_sigma=mu_sigma, weights=weights, ndet=ndet,
+                               bin_spec=bin_spec, verbose=verbose, debug=debug)
         chi2r = np.array(chi2r)
         f0 = f_range[chi2r.argmin()]
 
@@ -287,6 +297,7 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
                                        algo_options=algo_options,
                                        f_range=f_range,
                                        transmission=transmission,
+                                       radial_gradient=radial_gradient,
                                        mu_sigma=mu_sigma, weights=weights,
                                        ndet=ndet, verbose=False, debug=False)
             chi2r.append(chi2r_tmp)
@@ -335,9 +346,10 @@ def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
                        scaling=None, fmerit='sum', imlib='skimage',
                        interpolation='biquintic', collapse='median',
                        algo=pca_annulus, delta_rot=1, algo_options={},
-                       p_ini=None, transmission=None, mu_sigma=(0, 1),
-                       weights=None, force_rPA=False, ndet=None, bin_spec=False,
-                       options=None, verbose=False, **kwargs):
+                       p_ini=None, transmission=None, radial_gradient=False,
+                       mu_sigma=(0, 1), weights=None, force_rPA=False,
+                       ndet=None, bin_spec=False, options=None, verbose=False,
+                       **kwargs):
     """Determine the position of a companion using the negative fake companion\
     technique and a standard minimization algorithm (Default=Nelder-Mead).
 
@@ -439,6 +451,15 @@ def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
         Array with 2 columns. First column is the radial separation in pixels.
         Second column is the off-axis transmission (between 0 and 1) at the
         radial separation given in column 1.
+    radial_gradient: bool, optional
+        Whether to apply a radial gradient to the psf image at the moment of
+        injection. By default False, i.e. the flux of the psf image is scaled
+        only considering the value of transmission at the exact radius the
+        companion is injected (e.g. this is the case for the vortex
+        coronagraph). Setting it to True may better represent the transmission
+        at the very edge of a physical mask (e.g. ALC) or the effect on the
+        light distribution of a marginally extended source near the IWA of the
+        coronagraph.
     mu_sigma: tuple of 2 floats or None, opt
         If set to None: not used, and falls back to original version of the
         algorithm, using fmerit. Otherwise, should be a tuple of 2 elements,
@@ -492,8 +513,9 @@ def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
                                           cube_ref, svd_mode, scaling, fmerit,
                                           collapse, algo, delta_rot, imlib,
                                           interpolation, algo_options,
-                                          transmission, mu_sigma, weights,
-                                          force_rPA, ndet, bin_spec),
+                                          transmission, radial_gradient,
+                                          mu_sigma, weights, force_rPA, ndet,
+                                          bin_spec),
                     method='Nelder-Mead', options=options, **kwargs)
 
     if verbose:
@@ -505,10 +527,11 @@ def firstguess(cube, angs, psfn, planets_xy_coord, ncomp=1, fwhm=4,
                annulus_width=4, aperture_radius=1, cube_ref=None,
                svd_mode='lapack', scaling=None, fmerit='sum', imlib='skimage',
                interpolation='biquintic', collapse='median', algo=pca_annulus,
-               delta_rot=1, f_range=None, transmission=None, mu_sigma=True,
-               wedge=None, weights=None, force_rPA=False, ndet=None,
-               bin_spec=False, algo_options={}, simplex=True,
-               simplex_options=None, plot=False, verbose=True, save=False):
+               delta_rot=1, f_range=None, transmission=None,
+               radial_gradient=False, mu_sigma=True, wedge=None, weights=None,
+               force_rPA=False, ndet=None, bin_spec=False, algo_options={},
+               simplex=True, simplex_options=None, plot=False, verbose=True,
+               save=False):
     """Determine a first guess for the position and the flux of a planet using\
     the negative fake companion technique, as explained in [WER17]_.
 
@@ -615,6 +638,15 @@ def firstguess(cube, angs, psfn, planets_xy_coord, ncomp=1, fwhm=4,
         Array with 2 columns. First column is the radial separation in pixels.
         Second column is the off-axis transmission (between 0 and 1) at the
         radial separation given in column 1.
+    radial_gradient: bool, optional
+        Whether to apply a radial gradient to the psf image at the moment of
+        injection. By default False, i.e. the flux of the psf image is scaled
+        only considering the value of transmission at the exact radius the
+        companion is injected (e.g. this is the case for the vortex
+        coronagraph). Setting it to True may better represent the transmission
+        at the very edge of a physical mask (e.g. ALC) or the effect on the
+        light distribution of a marginally extended source near the IWA of the
+        coronagraph.
     mu_sigma: tuple of 2 floats, bool or None, opt
         If set to None: not used, and falls back to original version of the
         algorithm, using fmerit.
@@ -748,6 +780,7 @@ def firstguess(cube, angs, psfn, planets_xy_coord, ncomp=1, fwhm=4,
                                          interpolation=interpolation,
                                          algo_options=algo_options,
                                          transmission=transmission,
+                                         radial_gradient=radial_gradient,
                                          mu_sigma=mu_sigma, weights=weights,
                                          ndet=ndet, bin_spec=bin_spec,
                                          plot=plot, verbose=verbose, save=save)
@@ -786,6 +819,7 @@ def firstguess(cube, angs, psfn, planets_xy_coord, ncomp=1, fwhm=4,
                                      delta_rot=delta_rot,
                                      algo_options=algo_options,
                                      transmission=transmission,
+                                     radial_gradient=radial_gradient,
                                      mu_sigma=mu_sigma, weights=weights,
                                      force_rPA=force_rPA, ndet=ndet,
                                      bin_spec=bin_spec, options=simplex_options,

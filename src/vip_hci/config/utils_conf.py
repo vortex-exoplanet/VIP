@@ -515,7 +515,7 @@ def pool_map(nproc, fkt, *args, **kwargs):
         method_name = processing_method.get_start_method()
 
         # allow reusing a persistent Pool to avoid repeated forking overhead
-        reuse_pool = kwargs.get("reuse_pool", True) # not exposed in docstring
+        reuse_pool = kwargs.get("reuse_pool", False) # not exposed in docstring
         pool_key = (nproc, method_name)
 
         if reuse_pool:

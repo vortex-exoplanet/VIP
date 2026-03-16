@@ -185,7 +185,8 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
                                    iterable(array), rad, ang,
                                    iterable(angle_list), iterable(flevel),
                                    size_fc, imlib_sh, imlib_rot, interpolation,
-                                   transmission, radial_gradient)
+                                   transmission, radial_gradient,
+                                   reuse_pool=True)
                     array_out += np.array(res)
 
                 pos_y = rad * np.sin(ang) + ceny

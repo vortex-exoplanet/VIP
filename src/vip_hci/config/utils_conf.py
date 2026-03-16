@@ -527,10 +527,6 @@ def pool_map(nproc, fkt, *args, **kwargs):
             if _generator:
                 res = pool.imap(eval_func_tuple, z)
             else:
-                #chunksize = max(1, len(args_r[0]) // (4*nproc))
-                # chunksize = 10
-                # print(f'toto chunksize={chunksize}')
-                # res = pool.map(eval_func_tuple, z, chunksize=chunksize)
                 res = pool.map(eval_func_tuple, z)
 
         else:
@@ -542,7 +538,7 @@ def pool_map(nproc, fkt, *args, **kwargs):
             pool.close()
             pool.join()
 
-        # # return back to default behaviour regarding multithreading
+        # return back to default behaviour regarding multithreading
         if not vars_are_set:
             del os.environ["OMP_NUM_THREADS"]
             del os.environ["NUMEXPR_NUM_THREADS"]

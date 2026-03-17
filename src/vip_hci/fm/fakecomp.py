@@ -97,7 +97,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
         Number of CPUs to use for multiprocessing. If None, will be
         automatically set to half the number of available CPUs.
     copy_array: bool, optional
-        If True, ``array`` is not copied before injection. This is intended for 
+        Default is True. If False, ``array`` is not copied before injection. This is intended for 
         computing performance when ``array`` can be modified.
 
     Returns
@@ -118,7 +118,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
     def _cube_inject_adi(array, psf_template, angle_list, flevel, plsc,
                          rad_dists, n_branches=1, theta=0, imlib='vip-fft',
                          interpolation='lanczos4', transmission=None,
-                         radial_gradient=False, copy_array=True, verbose=False):
+                         radial_gradient=False, verbose=False, copy_array=True):
         if np.isscalar(flevel):
             flevel = np.ones_like(angle_list)*flevel
 
@@ -272,7 +272,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
         res = _cube_inject_adi(array, psf_template, angle_list, flevel, plsc,
                                rad_dists, n_branches, theta, imlib,
                                interpolation, transmission, radial_gradient,
-                               verbose)
+                               verbose, copy_array)
         array_out, positions, psf_trans = res
 
     # ADI+mSDI (IFS) case

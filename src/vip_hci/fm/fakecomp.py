@@ -668,10 +668,10 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
         fwhm_aper = CircularAperture((cx, cy), fwhm/2)
         fwhm_aper_phot = aperture_photometry(psf, fwhm_aper,
                                              method='exact')
-        fwhm_flux = np.array(fwhm_aper_phot['aperture_sum'])
+        fwhm_flux = float(fwhm_aper_phot['aperture_sum'][0])
 
         if fwhm_flux > 1.1 or fwhm_flux < 0.9:
-            psf_norm_array = psf / np.array(fwhm_aper_phot['aperture_sum'])
+            psf_norm_array = psf / fwhm_flux
         else:
             psf_norm_array = psf
 
@@ -682,7 +682,7 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
             psf_norm_array = get_circle(psf_norm_array, radius=mask_core)
 
         if verbose:
-            print("Flux in 1xFWHM aperture: {:.3f}".format(fwhm_flux[0]))
+            print("Flux in 1xFWHM aperture: {:.3f}".format(fwhm_flux))
 
         if full_output:
             return psf_norm_array, fwhm_flux, fwhm
@@ -803,7 +803,7 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
             restemp = psf_norm_2d(array[fr], fwhm[fr], threshold, mask_core,
                                   True, False)
             array_out.append(restemp[0])
-            fwhm_flux[fr] = restemp[1][0]
+            fwhm_flux[fr] = restemp[1]
 
         array_out = np.array(array_out)
         if verbose:

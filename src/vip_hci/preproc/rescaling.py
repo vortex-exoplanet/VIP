@@ -758,6 +758,7 @@ def cube_rescaling(
             interpolation,
             scaling_y,
             scaling_x,
+            reuse_pool=True,  # keep pool open because we are often iterating over an ADI cube
         )
 
     return np.array(array_sc)

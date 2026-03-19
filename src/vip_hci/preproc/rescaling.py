@@ -14,8 +14,10 @@ __all__ = [
     "scale_fft",
 ]
 
-import numpy as np
 import warnings
+from multiprocessing import cpu_count
+
+import numpy as np
 
 try:
     import cv2
@@ -27,6 +29,7 @@ except ImportError:
 
 from scipy.ndimage import geometric_transform, zoom
 from scipy.optimize import minimize
+from ..config.utils_conf import pool_map, iterable
 from ..var import frame_center, get_square, cube_filter_highpass
 from .subsampling import cube_collapse
 from .recentering import frame_shift
@@ -329,6 +332,7 @@ def cube_rescaling_wavelengths(
     interpolation="lanczos4",
     collapse="median",
     pad_mode="reflect",
+    nproc=1,
 ):
     """
     Scale/Descale a cube by scal_list, with padding. Can deal with NaN values.
@@ -404,6 +408,9 @@ def cube_rescaling_wavelengths(
                 pads with the wrap of the vector along the axis. The first
                 values are used to pad the end and the end values are used to
                 pad the beginning
+    nproc : int, optional
+        Number of processes to use for parallel frame rescaling. Default is 1. 
+        Set to None to use half the available CPUs.
 
     Returns
     -------
@@ -446,7 +453,7 @@ def cube_rescaling_wavelengths(
 
     # (de)scale the cube, so that a planet would now move radially
     cube = cube_rescaling(big_cube, scal_list, ref_xy=(cx, cy), imlib=imlib,
-                          interpolation=interpolation)
+                          interpolation=interpolation, nproc=nproc)
     frame = cube_collapse(cube, collapse)
 
     if inverse and max_sc > 1:
@@ -486,6 +493,14 @@ def _scale_func(output_coords, ref_xy=0, scaling=1.0, scale_y=None,
         ref_y + (output_coords[0] - ref_y) / scale_y,
         ref_x + (output_coords[1] - ref_x) / scale_x,
     )
+
+
+def _frame_rescaling_mp(frame, scale, ref_xy, imlib, interpolation,
+                        scale_y, scale_x):
+    """Multiprocessing helper for cube_rescaling."""
+    return frame_rescaling(frame, ref_xy=ref_xy, scale=scale, imlib=imlib,
+                           interpolation=interpolation, scale_y=scale_y,
+                           scale_x=scale_x)
 
 
 def frame_rescaling(
@@ -675,6 +690,7 @@ def cube_rescaling(
     interpolation="lanczos4",
     scaling_y=None,
     scaling_x=None,
+    nproc=1,
 ):
     """
     Rescale a cube by factors from ``scaling_list`` wrt a position.
@@ -699,6 +715,9 @@ def cube_rescaling(
     scaling_x : 1D-array or list
         Scaling factor only for x axis. If provided, it takes priority on
         scaling_list.
+    nproc : int, optional
+        Number of processes to use for parallel frame rescaling. Default is 1.
+        Set to None to use half the available CPUs.
 
     Returns
     -------
@@ -706,15 +725,17 @@ def cube_rescaling(
         Resulting cube with rescaled frames.
 
     """
-
     if array.ndim != 3:
         raise TypeError("Input array is not a cube or 3d array")
 
-    array_sc = []
     if scaling_list is None:
         scaling_list = [None] * array.shape[0]
-    for i in range(array.shape[0]):
-        array_sc.append(
+
+    if nproc is None:
+        nproc = cpu_count() // 2
+
+    if nproc == 1:
+        array_sc = [
             frame_rescaling(
                 array[i],
                 ref_xy=ref_xy,
@@ -724,7 +745,21 @@ def cube_rescaling(
                 scale_y=scaling_y,
                 scale_x=scaling_x,
             )
+            for i in range(array.shape[0])
+        ]
+    else:
+        array_sc = pool_map(
+            nproc,
+            _frame_rescaling_mp,
+            iterable(array),
+            iterable(scaling_list),
+            ref_xy,
+            imlib,
+            interpolation,
+            scaling_y,
+            scaling_x,
         )
+
     return np.array(array_sc)
 
 
@@ -1179,3 +1214,10 @@ def scale_fft(array, scale, ori_dim=False):
         array_resc = scaled
 
     return array_resc
+
+
+
+
+
+
+

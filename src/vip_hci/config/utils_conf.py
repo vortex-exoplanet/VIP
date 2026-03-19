@@ -17,10 +17,26 @@ from inspect import signature, Parameter
 from functools import wraps
 from pathlib import Path
 import multiprocessing
+import atexit
 
 sep = "―" * 80
 vip_figsize = (8, 5)
 vip_figdpi = 100
+
+# cache for persistent Pools to avoid repeated forking
+_pool_cache = {}
+
+
+def _close_pools():
+    for key, pool in list(_pool_cache.items()):
+        try:
+            pool.close()
+            pool.join()
+        except Exception:
+            pass
+
+
+atexit.register(_close_pools)
 
 
 def print_precision(array, precision=3):
@@ -494,15 +510,33 @@ def pool_map(nproc, fkt, *args, **kwargs):
         if verbose and msg is not None:
             print("{} with {} processes".format(msg, nproc))
 
+        # choose processing context (prefer fork when available)
         processing_method = multiprocessing.get_context(method="fork")
-        pool = processing_method.Pool(processes=nproc)
+        method_name = processing_method.get_start_method()
 
-        if _generator:
-            res = pool.imap(eval_func_tuple, z)
+        # allow reusing a persistent Pool to avoid repeated forking overhead
+        reuse_pool = kwargs.get("reuse_pool", False) # not exposed in docstring
+        pool_key = (nproc, method_name)
+
+        if reuse_pool:
+            if pool_key in _pool_cache:
+                pool = _pool_cache[pool_key]
+            else:
+                pool = processing_method.Pool(processes=nproc)
+                _pool_cache[pool_key] = pool
+            if _generator:
+                res = pool.imap(eval_func_tuple, z)
+            else:
+                res = pool.map(eval_func_tuple, z)
+
         else:
-            res = pool.map(eval_func_tuple, z)
-        pool.close()
-        pool.join()
+            pool = processing_method.Pool(processes=nproc)
+            if _generator:
+                res = pool.imap(eval_func_tuple, z)
+            else:
+                res = pool.map(eval_func_tuple, z)
+            pool.close()
+            pool.join()
 
         # return back to default behaviour regarding multithreading
         if not vars_are_set:

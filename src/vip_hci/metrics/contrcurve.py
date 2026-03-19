@@ -866,6 +866,7 @@ def throughput(
                         nproc=nproc,
                         imlib=imlib,
                         interpolation=interpolation,
+                        copy_array=False,
                         verbose=False,
                     )
                     y = cy + radvec[i] * \

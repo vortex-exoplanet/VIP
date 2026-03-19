@@ -18,6 +18,13 @@ __all__ = ['cube_collapse',
            'cube_subsample_trimmean']
 
 import numpy as np
+import warnings
+try:
+    import bottleneck as bn
+except ImportError:
+    msg = "bottleneck package not found. Fall back to numpy"
+    warnings.warn(msg, ImportWarning)
+    import numpy as bn
 
 
 def cube_collapse(cube, mode='median', n=50, w=None):
@@ -70,13 +77,13 @@ def cube_collapse(cube, mode='median', n=50, w=None):
             w = np.array(w)
 
     if mode == 'mean':
-        frame = np.nanmean(arr, axis=ax)
+        frame = bn.nanmean(arr, axis=ax)
     elif mode == 'median':
-        frame = np.nanmedian(arr, axis=ax)
+        frame = bn.nanmedian(arr, axis=ax)
     elif mode == 'sum':
-        frame = np.nansum(arr, axis=ax)
+        frame = bn.nansum(arr, axis=ax)
     elif mode == 'max':
-        frame = np.nanmax(arr, axis=ax)
+        frame = bn.nanmax(arr, axis=ax)
     elif mode == 'trimmean':
         N = arr.shape[ax]
         k = (N - n)//2
@@ -86,13 +93,13 @@ def cube_collapse(cube, mode='median', n=50, w=None):
             frame = np.empty_like(arr[0])
             for index, _ in np.ndenumerate(arr[0]):
                 sort = np.sort(arr[:, index[0], index[1]])
-                frame[index] = np.nanmean(sort[k:k+n])
+                frame[index] = bn.nanmean(sort[k:k+n])
         else:
             frame = np.empty_like(arr[:, 0])
             for j in range(nch):
                 for index, _ in np.ndenumerate(arr[:, 0]):
                     sort = np.sort(arr[j, :, index[0], index[1]])
-                    frame[j][index] = np.nanmean(sort[k:k+n])
+                    frame[j][index] = bn.nanmean(sort[k:k+n])
     elif mode == 'wmean':
         arr[np.where(np.isnan(arr))] = 0  # to avoid product with nan
         if ax == 0:
@@ -102,7 +109,7 @@ def cube_collapse(cube, mode='median', n=50, w=None):
             for j in range(nch):
                 frame[j] = np.inner(w, np.moveaxis(arr[j], 0, -1))
     elif mode == 'absmean':
-        frame = np.nanmean(np.abs(arr), axis=ax)
+        frame = bn.nanmean(np.abs(arr), axis=ax)
     else:
         raise TypeError("mode not recognized")
 

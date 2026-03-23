@@ -1,18 +1,30 @@
-from . import preproc
-from . import config
-from . import fits
-from . import invprob
-from . import psfsub
-from . import fm
-from . import metrics
-from . import stats
-from . import var
-from . import objects
-from .vip_ds9 import *
+import importlib as _importlib
+
+_submodules = [
+    "config",
+    "fits",
+    "fm",
+    "greedy",
+    "invprob",
+    "metrics",
+    "objects",
+    "preproc",
+    "psfsub",
+    "stats",
+    "var",
+    "vip_ds9",
+]
 
 
 def __getattr__(name: str):
-    if name == '__version__':
+    if name in _submodules:
+        return _importlib.import_module(f".{name}", __name__)
+    if name == "__version__":
         from importlib.metadata import version
-        return version('vip_hci')
+        return version("vip_hci")
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__():
+    return _submodules + ["__version__"]
+

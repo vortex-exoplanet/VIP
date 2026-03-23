@@ -27,4 +27,3 @@ def __getattr__(name: str):
 
 def __dir__():
     return _submodules + ["__version__"]
-

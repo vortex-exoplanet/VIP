@@ -1087,7 +1087,7 @@ def _adimsdi_singlepca(
         print("Rescaling the spectral channels to align the speckles")
     for i in Progressbar(range(n), verbose=verbose):
         cube_resc = scwave(cube[:, i, :, :], scale_list, imlib=imlib2,
-                           interpolation=interpolation)[0]
+                           interpolation=interpolation, nproc=nproc)[0]
         if crop_ifs:
             cube_resc = cube_crop_frames(cube_resc, size=y_in, verbose=False)
         big_cube.append(cube_resc)
@@ -1104,7 +1104,7 @@ def _adimsdi_singlepca(
             print(msg)
         for i in Progressbar(range(nr), verbose=verbose):
             cube_resc = scwave(cube_ref[:, i, :, :], scale_list, imlib=imlib2,
-                               interpolation=interpolation)[0]
+                               interpolation=interpolation, nproc=nproc)[0]
             if crop_ifs:
                 cube_resc = cube_crop_frames(cube_resc, size=y_in,
                                              verbose=False)
@@ -1181,6 +1181,7 @@ def _adimsdi_singlepca(
                 imlib=imlib2,
                 interpolation=interpolation,
                 collapse=collapse_ifs,
+                nproc=nproc
             )
             cube_desc_residuals[:, i] = res_i[0]
             resadi_cube[i] = res_i[1]
@@ -1490,7 +1491,8 @@ def _adimsdi_doublepca_ifs(
         frame_i = cube_collapse(multispec_fr[idx_ini:idx_fin])
     else:
         cube_resc = scwave(
-            multispec_fr, scale_list, imlib=imlib, interpolation=interpolation
+            multispec_fr, scale_list, imlib=imlib, interpolation=interpolation,
+            nproc=1,  # already inside a pool_map worker so we don't want nested multiprocessing
         )[0]
 
         if mask_rdi is None:
@@ -1523,6 +1525,7 @@ def _adimsdi_doublepca_ifs(
             imlib=imlib,
             interpolation=interpolation,
             collapse=collapse,
+            nproc=1,  # already inside a pool_map worker so we don't want nested multiprocessing
         )
         if mask_center_px:
             frame_i = mask_circle(frame_i, mask_center_px)

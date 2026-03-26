@@ -1428,22 +1428,38 @@ def _adimsdi_doublepca(
             for frame in range(n):
                 ind = _find_indices_adi(angle_list, frame, pa_thr,
                                         truncate=truncate, max_frames=max_fr)
-
-                res_result = _project_subtract(
-                    res_cube_channels[:n],
-                    res_cube_channels[n:],
-                    ncomp_adi,
-                    scaling[1],
-                    mask_center_px,
-                    svd_mode,
-                    verbose,
-                    False,
-                    ind,
-                    frame,
-                    cube_sig=cube_sig,
-                    left_eigv=left_eigv,
-                    min_frames_pca=min_frames_pca,
-                )
+                if 'A' in ref_strategy or cube_ref is None:
+                    res_result = _project_subtract(
+                        res_cube_channels[:n],
+                        None,
+                        ncomp_adi,
+                        scaling[1],
+                        mask_center_px,
+                        svd_mode,
+                        verbose,
+                        False,
+                        ind,
+                        frame,
+                        cube_sig=cube_sig,
+                        left_eigv=left_eigv,
+                        min_frames_pca=min_frames_pca,
+                    )
+                else:
+                    res_result = _project_subtract(
+                        res_cube_channels[:n],
+                        res_cube_channels[n:],  # ref cube
+                        ncomp_adi,
+                        scaling[1],
+                        mask_center_px,
+                        svd_mode,
+                        verbose,
+                        False,
+                        ind,
+                        frame,
+                        cube_sig=cube_sig,
+                        left_eigv=left_eigv,
+                        min_frames_pca=min_frames_pca,
+                    )
                 res_ifs_adi[frame] = res_result[-1].reshape((y_in, x_in))
 
         if verbose:

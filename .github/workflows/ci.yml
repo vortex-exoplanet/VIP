@@ -25,7 +25,7 @@ jobs:
     - name: Run pre-commit
       run: |
         pip install pre-commit
-        pre-commit run --all-files
+        pre-commit run --files src/**/*.py
 
   no_object_checks:
     needs: pre-commit

@@ -51,8 +51,13 @@ def bkg_star_proba(n_dens, sep, n_bkg=1, unit="deg", verbose=True,
         raise TypeError("n_bkg should be a strictly positive integer.")
 
     if unit == "deg":
+        if verbose:
+            print("Input n_dens unit: deg^-2")
         n_dens = n_dens / 3600**2
-    elif unit != "arcsec":
+    elif unit == "arcsec":
+        if verbose:
+            print("Input n_dens unit: arcsec^-2")
+    else:
         raise ValueError("unit must be 'deg' or 'arcsec'.")
 
     if not isinstance(sep, float):
@@ -70,13 +75,13 @@ def bkg_star_proba(n_dens, sep, n_bkg=1, unit="deg", verbose=True,
         probas[i] = np.exp(-n_dens*B)*(n_dens*B)**i/float(factorial(i))
         if verbose:
             msg = "Proba of having {:.0f} bkg star in a disk of "
-            msg += "{:.1}'' radius: {:.4g}%"
+            msg += "{:.2g}'' radius: {:.4g}%"
             print(msg.format(i, sep, probas[i]*100))
 
     proba = 1-np.sum(probas)
     if verbose:
         msg = "Proba of having {:.0f} bkg star or more in a disk of "
-        msg += "{:.1}'' radius: {:.4g}%"
+        msg += "{:.2g}'' radius: {:.4g}%"
         print(msg.format(n_bkg, sep, proba*100))
 
     if full_output:

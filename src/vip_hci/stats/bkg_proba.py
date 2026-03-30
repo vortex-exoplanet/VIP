@@ -11,9 +11,10 @@ from scipy.special import factorial
 import numpy as np
 
 
-def bkg_star_proba(n_dens, sep, n_bkg=1, verbose=True, full_output=False):
+def bkg_star_proba(n_dens, sep, n_bkg=1, unit="deg", verbose=True,
+                   full_output=False):
     """ Given an input density of background star brighter than a certain
-    magnitude (obtained e.g. from the Besancon model or TRILEGAL), and the
+    magnitude (obtained e.g. from the Besançon model or TRILEGAL), and the
     separation of n_bkg point source, estimate the probability of having n_bkg
     or more background stars in a disk with radius equal to the largest
     separation.
@@ -23,12 +24,15 @@ def bkg_star_proba(n_dens, sep, n_bkg=1, verbose=True, full_output=False):
     ----------
     n_dens : float
         Number density of background stars in the direction of the object of
-        interest, in arcsec^-2.
+        interest. Units are set by the ``unit`` parameter.
     sep : float or numpy 1d array
         Separation of the point sources with respect to central star, in arcsec.
     n_bkg : int, opt
         Number of point sources in the field, and for which the separation is
         provided.
+    unit : str, opt
+        Unit of ``n_dens``. Either ``"deg"`` for deg^-2 (default, e.g. from
+        the Besançon model) or ``"arcsec"`` for arcsec^-2.
     verbose: bool, opt
         Whether to print the probabilities for 0 to n_bkg point sources.
     full_output: bool, opt
@@ -46,6 +50,11 @@ def bkg_star_proba(n_dens, sep, n_bkg=1, verbose=True, full_output=False):
     if n_bkg < 1 or not isinstance(n_bkg, int):
         raise TypeError("n_bkg should be a strictly positive integer.")
 
+    if unit == "deg":
+        n_dens = n_dens / 3600**2
+    elif unit != "arcsec":
+        raise ValueError("unit must be 'deg' or 'arcsec'.")
+
     if not isinstance(sep, float):
         if isinstance(sep, np.ndarray):
             if sep.ndim != 1 or sep.shape[0] != n_bkg:
@@ -61,14 +70,14 @@ def bkg_star_proba(n_dens, sep, n_bkg=1, verbose=True, full_output=False):
         probas[i] = np.exp(-n_dens*B)*(n_dens*B)**i/float(factorial(i))
         if verbose:
             msg = "Proba of having {:.0f} bkg star in a disk of "
-            msg += "{:.1}'' radius: {:.1f}%"
-            print(msg.format(i, sep, probas[i]))
+            msg += "{:.1}'' radius: {:.4g}%"
+            print(msg.format(i, sep, probas[i]*100))
 
     proba = 1-np.sum(probas)
     if verbose:
         msg = "Proba of having {:.0f} bkg star or more in a disk of "
-        msg += "{:.1}'' radius: {:.1f}%"
-        print(msg.format(n_bkg, sep, proba))
+        msg += "{:.1}'' radius: {:.4g}%"
+        print(msg.format(n_bkg, sep, proba*100))
 
     if full_output:
         return proba, probas

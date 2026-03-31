@@ -9,6 +9,7 @@ Subpackage ``stats`` contains functionalities such as:
 - distance (correlation) between a cube and a reference frame.
 
 """
+from .bkg_proba import *
 from .clip_sigma import *
 from .distances import *
 from .im_stats import *

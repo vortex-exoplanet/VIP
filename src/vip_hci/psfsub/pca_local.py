@@ -412,7 +412,7 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
                             n_annuli, algo_params.fwhm)
                     )
                 # apply the same first pass to cube ref
-                nr = algo_params.cube_ref.shape[0]
+                nr = algo_params.cube_ref.shape[1]
                 add_params['do_ref'] = True
                 add_params["fr"] = iterable(range(nr))
                 func_params_ref = setup_parameters(

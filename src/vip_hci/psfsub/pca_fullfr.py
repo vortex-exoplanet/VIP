@@ -1418,7 +1418,7 @@ def _adimsdi_doublepca(
             ann_center = dist(yc, xc, y1, x1)
             pa_thr = _compute_pa_thresh(ann_center, fwhm, delta_rot)
 
-            res_ifs_adi = np.zeros_like(res_cube_channels)
+            res_ifs_adi = np.zeros((n, y_in, x_in))
             max_fr = max_frames_pca
             if max_frames_pca is not None:
                 truncate = True
@@ -1431,7 +1431,7 @@ def _adimsdi_doublepca(
                 if 'A' in ref_strategy or cube_ref is None:
                     res_result = _project_subtract(
                         res_cube_channels[:n],
-                        None,
+                        res_cube_channels[n:] if nr else None,  # ARSDI with rotation threshold, else ASDI
                         ncomp_adi,
                         scaling[1],
                         mask_center_px,
@@ -1464,7 +1464,7 @@ def _adimsdi_doublepca(
 
         if verbose:
             print("De-rotating and combining residuals")
-        residuals_cube_channels_ = cube_derotate(res_ifs_adi[:n], angle_list,
+        residuals_cube_channels_ = cube_derotate(res_ifs_adi, angle_list,
                                                  nproc=nproc, imlib=imlib,
                                                  interpolation=interpolation,
                                                  **rot_options)

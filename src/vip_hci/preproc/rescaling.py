@@ -771,6 +771,7 @@ def find_scal_vector(
     interpolation="lanczos4",
     hpf=False,
     fwhm_max=5,
+    check_vec=True,
     **kwargs
 ):
     """
@@ -809,6 +810,10 @@ def find_scal_vector(
     fwhm_max: float, optional
         Maximum FWHM of the PSF across all wavelengths, in pixels. Only used if
         hpf is set to True.
+    check_vec: True, optional
+        Whether to check (and force) the output vector to be >=1. This will set
+        the smallest scaling factor to 1, and scale accordingly the other
+        factors.
     **kwargs: optional
         Optional arguments to the scipy.optimize.minimize function
 
@@ -872,7 +877,8 @@ def find_scal_vector(
         scal_vec[z] = scal_fac
         flux_vec[z] = flux_fac
 
-    scal_vec = check_scal_vector(scal_vec)
+    if check_vec:
+        scal_vec = check_scal_vector(scal_vec)
 
     return scal_vec, flux_vec
 

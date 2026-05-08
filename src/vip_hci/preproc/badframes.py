@@ -80,7 +80,8 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
     n = array.shape[0]
 
     res = cube_basic_stats(array, mode, radius=in_radius,
-                           inner_radius=in_radius, size=width, full_output=True)
+                           inner_radius=in_radius, size=width,
+                           full_output=True)
     if method == 'mean':
         mean_values = res[0]
     else:
@@ -97,12 +98,7 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
     top_boundary = np.empty([n])
     bot_boundary = np.empty([n])
     for i in range(n):
-        if mode == 'annulus':
-            i_mean_value = get_annulus_segments(array[i], width=width,
-                                                inner_radius=in_radius,
-                                                mode="val")[0].mean()
-        elif mode == 'circle':
-            i_mean_value = mean_values[i]
+        i_mean_value = mean_values[i]
         top_boundary[i] = mean_smooth[i] + top_sigma*sigma
         bot_boundary[i] = mean_smooth[i] - low_sigma*sigma
         if i_mean_value > top_boundary[i] or i_mean_value < bot_boundary[i]:

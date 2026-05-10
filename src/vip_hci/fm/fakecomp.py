@@ -816,7 +816,7 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
 
 def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
                      interpolation='lanczos4', transmission=None,
-                     radial_gradient=False):
+                     radial_gradient=False, weights=None):
     """Return a cube in which we have injected negative fake companion at the\
     position/flux given by planet_parameter.
 
@@ -855,6 +855,10 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
         at the very edge of a physical mask (e.g. ALC) or the effect on the
         light distribution of a marginally extended source near the IWA of the
         coronagraph.
+    weights : 1d array, optional
+        If provided, the negative fake companion fluxes will be scaled according
+        to these weights before injection in the cube. Can reflect changes in
+        the observing conditions throughout the sequence.
 
     Returns
     -------
@@ -898,8 +902,12 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
                                                 transmission=transmission,
                                                 radial_gradient=radial_gradient)
         else:
+            if weights is None:
+                flevel = -planet_parameter[i, 2]
+            else:
+                flevel = -planet_parameter[i, 2]*weights
             cpf = cube_inject_companions(cube_temp, psfn, angs, n_branches=1,
-                                         flevel=-planet_parameter[i, 2],
+                                         flevel=flevel,
                                          rad_dists=[planet_parameter[i, 0]],
                                          theta=planet_parameter[i, 1],
                                          imlib=imlib, verbose=False,

@@ -56,7 +56,7 @@ test:
 	pre-commit install-hooks
 	pre-commit install
 	pre-commit run --files src/**/*.py
-	coverate run -m pytest
+	coverage run -m pytest
 	coverage xml
 	rm confi_hist.pdf
 	rm confi_hist_gaussfit.pdf

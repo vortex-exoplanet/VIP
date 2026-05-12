@@ -18,8 +18,8 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
-    - uses: actions/setup-python@v6
+    - uses: actions/checkout@main
+    - uses: actions/setup-python@main
       with:
         python-version: "3.14"
     - name: Run pre-commit
@@ -41,9 +41,9 @@ jobs:
         group: [1, 2, 3]
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@main
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@main
       with:
         python-version: ${{ matrix.python-version }}
         cache: pip
@@ -56,7 +56,7 @@ jobs:
         coverage run --source src -m pytest tests/pre_3_10 --splits 3 --group ${{ matrix.group }}
         coverage xml
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v6
+      uses: codecov/codecov-action@main
 
   objects_check:
     needs: pre-commit
@@ -67,9 +67,9 @@ jobs:
         python-version: ["3.11", "3.12", "3.13", "3.14"]
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@main
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@main
       with:
         python-version: ${{ matrix.python-version }}
         cache: pip
@@ -82,4 +82,4 @@ jobs:
         coverage run --source=src/vip_hci/objects/ -m pytest tests/post_3_10
         coverage xml
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v6
+      uses: codecov/codecov-action@main

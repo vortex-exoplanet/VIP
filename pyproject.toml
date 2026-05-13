@@ -76,3 +76,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "vip_hci" = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"

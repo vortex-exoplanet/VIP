@@ -52,6 +52,8 @@ except ImportError:
     no_opencv = True
 import numpy as np
 from scipy.ndimage import median_filter
+from skimage.filters import median
+from skimage.morphology import disk
 from skimage.restoration import richardson_lucy
 from astropy.convolution import (convolve_fft, convolve, Gaussian2DKernel)
 from astropy.convolution import interpolate_replace_nans as interp_nan
@@ -62,7 +64,7 @@ from ..config import Progressbar
 
 def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
     """
-    Isotropic Undecimated Wavelet Transform filtering, as implemented in
+    Isotropic Undecimated Wavelet Transform filtering, as implemented in\
     [KEN15]_ and detailed in [DAB15]_.
 
     Parameters
@@ -203,6 +205,8 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
             ``kernel_size``) and using the ``convolve_fft`` Astropy function.
         ``median-subt``
             subtracts a median low-pass filtered version of the image.
+        ``cmedian-subt``
+            subtracts a circular median low-pass filtered version of the image.
         ``gauss-subt``
             subtracts a Gaussian low-pass filtered version of the image.
         ``fourier-butter``
@@ -210,8 +214,9 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         ``hann``
             uses a Hann window.
 
-    median_size : int, optional
-        Size of the median box for the ``median-subt`` filter.
+    median_size : int or float, optional
+        Size of the median box for the ``median-subt`` and ``cmedian-subt``
+        filters. In the former case, input median_size should be int.
     kernel_size : int, optional
         Size of the Laplacian kernel used in ``laplacian`` mode. It must be an
         positive odd integer value.
@@ -357,6 +362,12 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
                                         median_size=median_size)
         filtered = array - medianed
 
+    elif mode == 'cmedian-subt':
+        # Subtracting the low_pass filtered (median) image from the image itself
+        medianed = frame_filter_lowpass(array, 'cmedian',
+                                        median_size=median_size)
+        filtered = array - medianed
+
     elif mode == 'gauss-subt':
         # Subtracting the low_pass filtered (median) image from the image itself
         gaussed = frame_filter_lowpass(array, 'gauss', fwhm_size=fwhm_size,
@@ -412,10 +423,11 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
     ----------
     array : numpy ndarray
         Input array, 2d frame.
-    mode : {'median', 'gauss', 'psf'}, str optional
-        Type of low-pass filtering.
-    median_size : int, optional
-        Size of the median box for filtering the low-pass median filter.
+    mode : {'median', 'cmedian', 'gauss', 'psf'}, str optional
+        Type of low-pass filtering. 'cmedian' stands for circular median.
+    median_size : int or float, optional
+        Size of the median box for the low-pass median filter ('median' and
+        'cmedian' modes). Should be an int for the 'median' mode.
     fwhm_size : float or tuple of 2 floats, optional
         Size of the Gaussian kernel for the low-pass Gaussian filter. If a
         tuple is provided, it should correspond to y and x kernel sizes,
@@ -457,8 +469,6 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
     """
     if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array.')
-    if not isinstance(median_size, int):
-        raise ValueError('`Median_size` must be integer')
 
     if mask is not None:
         if mode == 'median':
@@ -468,8 +478,14 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
             raise TypeError(msg)
 
     if mode == 'median':
+        if not isinstance(median_size, int):
+            raise ValueError('`Median_size` must be integer')
         # creating the low_pass filtered (median) image
         filtered = median_filter(array, median_size, mode='nearest')
+    elif mode == 'cmedian':
+        circle = disk(median_size)
+        # apply median filter with given footprint = structuring element
+        filtered = median(array, footprint=circle)
     elif mode == 'gauss':
         # 2d Gaussian filter
         kernel_sz_y = kernel_sz
@@ -615,7 +631,7 @@ def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
 
 def frame_deconvolution(array, psf, n_it=30):
     """
-    Iterative image deconvolution following the scikit-image implementation
+    Deconvolve image iteratively following the scikit-image implementation\
     of the Richardson-Lucy algorithm, described in [RIC72]_ and [LUC74]_.
 
     Considering an image that has been convolved by the point spread function

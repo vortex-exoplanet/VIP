@@ -316,13 +316,13 @@ class OptMethod(str, Enum):
 
     * ``LSQ``
 
-    * ``ROBUST``
+    * ``L1``
     """
 
     NO = "no"
     TOTAL = "total"
     LSQ = "lsq"
-    ROBUST = "robust"
+    L1 = "l1"
 
 
 class VarEstim(str, Enum):

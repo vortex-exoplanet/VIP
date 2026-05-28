@@ -8,6 +8,7 @@ __all__ = []
 
 
 import numpy as np
+from astropy.stats import median_absolute_deviation
 
 
 def robust_std(x):
@@ -32,8 +33,8 @@ def robust_std(x):
     based on ``LibAndromeda/robust_stddev.pro`` v1.1 2016/02/16
 
     """
-    median_absolute_deviation = np.median(np.abs(x - np.median(x)))
-    return median_absolute_deviation / 0.6745
+    mad = median_absolute_deviation(x)
+    return mad / 0.6745
 
 
 def idl_round(x):
@@ -84,7 +85,7 @@ def idl_where(array_expression):
       returns ``[]``, which is more "pythonic".
 
     """
-    res = np.array([i for i, e in enumerate(array_expression.flatten()) if e])
+    res = np.flatnonzero(array_expression)
     return res
 
 
@@ -285,7 +286,7 @@ def calc_psf_shift_subpix(psf, precision):
 
     """
     n = psf.shape[0]
-    psf_cube = np.zeros((precision+1, precision+1, n, n))
+    psf_cube = np.empty((precision+1, precision+1, n, n))
 
     for i_column in range(precision+1):
         decalx = i_column/precision

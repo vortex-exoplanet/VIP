@@ -1087,7 +1087,7 @@ def _adimsdi_singlepca(
         print("Rescaling the spectral channels to align the speckles")
     for i in Progressbar(range(n), verbose=verbose):
         cube_resc = scwave(cube[:, i, :, :], scale_list, imlib=imlib2,
-                           interpolation=interpolation)[0]
+                           interpolation=interpolation, nproc=nproc)[0]
         if crop_ifs:
             cube_resc = cube_crop_frames(cube_resc, size=y_in, verbose=False)
         big_cube.append(cube_resc)
@@ -1104,7 +1104,7 @@ def _adimsdi_singlepca(
             print(msg)
         for i in Progressbar(range(nr), verbose=verbose):
             cube_resc = scwave(cube_ref[:, i, :, :], scale_list, imlib=imlib2,
-                               interpolation=interpolation)[0]
+                               interpolation=interpolation, nproc=nproc)[0]
             if crop_ifs:
                 cube_resc = cube_crop_frames(cube_resc, size=y_in,
                                              verbose=False)
@@ -1181,6 +1181,7 @@ def _adimsdi_singlepca(
                 imlib=imlib2,
                 interpolation=interpolation,
                 collapse=collapse_ifs,
+                nproc=nproc
             )
             cube_desc_residuals[:, i] = res_i[0]
             resadi_cube[i] = res_i[1]
@@ -1417,7 +1418,7 @@ def _adimsdi_doublepca(
             ann_center = dist(yc, xc, y1, x1)
             pa_thr = _compute_pa_thresh(ann_center, fwhm, delta_rot)
 
-            res_ifs_adi = np.zeros_like(res_cube_channels)
+            res_ifs_adi = np.zeros((n, y_in, x_in))
             max_fr = max_frames_pca
             if max_frames_pca is not None:
                 truncate = True
@@ -1427,27 +1428,43 @@ def _adimsdi_doublepca(
             for frame in range(n):
                 ind = _find_indices_adi(angle_list, frame, pa_thr,
                                         truncate=truncate, max_frames=max_fr)
-
-                res_result = _project_subtract(
-                    res_cube_channels[:n],
-                    res_cube_channels[n:],
-                    ncomp_adi,
-                    scaling[1],
-                    mask_center_px,
-                    svd_mode,
-                    verbose,
-                    False,
-                    ind,
-                    frame,
-                    cube_sig=cube_sig,
-                    left_eigv=left_eigv,
-                    min_frames_pca=min_frames_pca,
-                )
+                if 'A' in ref_strategy or cube_ref is None:
+                    res_result = _project_subtract(
+                        res_cube_channels[:n],
+                        res_cube_channels[n:] if nr else None,  # ARSDI with rotation threshold, else ASDI
+                        ncomp_adi,
+                        scaling[1],
+                        mask_center_px,
+                        svd_mode,
+                        verbose,
+                        False,
+                        ind,
+                        frame,
+                        cube_sig=cube_sig,
+                        left_eigv=left_eigv,
+                        min_frames_pca=min_frames_pca,
+                    )
+                else:
+                    res_result = _project_subtract(
+                        res_cube_channels[:n],
+                        res_cube_channels[n:],  # ref cube
+                        ncomp_adi,
+                        scaling[1],
+                        mask_center_px,
+                        svd_mode,
+                        verbose,
+                        False,
+                        ind,
+                        frame,
+                        cube_sig=cube_sig,
+                        left_eigv=left_eigv,
+                        min_frames_pca=min_frames_pca,
+                    )
                 res_ifs_adi[frame] = res_result[-1].reshape((y_in, x_in))
 
         if verbose:
             print("De-rotating and combining residuals")
-        residuals_cube_channels_ = cube_derotate(res_ifs_adi[:n], angle_list,
+        residuals_cube_channels_ = cube_derotate(res_ifs_adi, angle_list,
                                                  nproc=nproc, imlib=imlib,
                                                  interpolation=interpolation,
                                                  **rot_options)
@@ -1490,7 +1507,8 @@ def _adimsdi_doublepca_ifs(
         frame_i = cube_collapse(multispec_fr[idx_ini:idx_fin])
     else:
         cube_resc = scwave(
-            multispec_fr, scale_list, imlib=imlib, interpolation=interpolation
+            multispec_fr, scale_list, imlib=imlib, interpolation=interpolation,
+            nproc=1,  # already inside a pool_map worker so we don't want nested multiprocessing
         )[0]
 
         if mask_rdi is None:
@@ -1523,6 +1541,7 @@ def _adimsdi_doublepca_ifs(
             imlib=imlib,
             interpolation=interpolation,
             collapse=collapse,
+            nproc=1,  # already inside a pool_map worker so we don't want nested multiprocessing
         )
         if mask_center_px:
             frame_i = mask_circle(frame_i, mask_center_px)

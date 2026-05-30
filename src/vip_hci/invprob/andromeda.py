@@ -844,7 +844,7 @@ def andromeda_core(
             msg += " {:.3f}".format(varmean)
             print(msg)
     else:
-        weights_diff_2d = variance_diff_2d > 0
+        weights_diff_2d = (variance_diff_2d > 0).astype(float)
         weights_diff_2d /= variance_diff_2d + (variance_diff_2d == 0)
         if verbose:
             msg = "    ANDROMEDA_CORE: Variance is taken equal to the "

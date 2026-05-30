@@ -219,7 +219,7 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
         array_prep = array.copy()
 
     # residual (non-interp) nans should be set to 0 to avoid bug in rotation
-    array_prep[np.where(np.isnan(array_prep))] = 0
+    array_prep[np.isnan(array_prep)] = 0
 
     y, x = array_prep.shape
 
@@ -604,9 +604,8 @@ def rotate_fft(array, angle):
     ori_y, ori_x = array_in.shape
 
     cy, cx = frame_center(array)
-    arr_xy = np.mgrid[0:ori_y, 0:ori_x]
-    arr_y = arr_xy[0]-cy
-    arr_x = arr_xy[1]-cx
+    arr_y = np.broadcast_to((np.arange(ori_y) - cy)[:, np.newaxis], (ori_y, ori_x))
+    arr_x = np.broadcast_to((np.arange(ori_x) - cx)[np.newaxis, :], (ori_y, ori_x))
 
     # TODO: make FFT padding work for other option than '0'.
     s_x = _fft_shear(array_in, arr_x, a, ax=1, pad=0)

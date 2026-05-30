@@ -35,6 +35,13 @@ __author__ = "C. A. Gomez Gonzalez, T. Bédrine, V. Christiaens"
 __all__ = ["median_sub", "MEDIAN_SUB_Params"]
 
 import numpy as np
+import warnings
+try:
+    import bottleneck as bn
+except ImportError:
+    msg = "bottleneck package not found. Fall back to numpy"
+    warnings.warn(msg, ImportWarning)
+    import numpy as bn
 from multiprocessing import cpu_count
 from dataclasses import dataclass
 from enum import Enum
@@ -298,7 +305,7 @@ def median_sub(*all_args: List, **all_kwargs: dict):
                         mask_sci = mask_circle(ARRAY[i], rin, fillwith=np.nan)
                         mask_sci = mask_circle(mask_sci, rout, fillwith=np.nan,
                                                mode='out')
-                        scal_fac = np.nansum(mask_sci)/np.nansum(mask_ref)
+                        scal_fac = bn.nansum(mask_sci)/bn.nansum(mask_ref)
                         ARRAY[i] -= scal_fac*ref_frame
                 else:
                     ARRAY -= ref_frame
@@ -441,7 +448,7 @@ def median_sub(*all_args: List, **all_kwargs: dict):
             cube_out = residuals_cube_channels
         else:
             if algo_params.mode == "fullfr":
-                median_frame = np.nanmedian(residuals_cube_channels, axis=0)
+                median_frame = bn.nanmedian(residuals_cube_channels, axis=0)
                 cube_out = residuals_cube_channels - median_frame
 
             elif algo_params.mode == "annular":
@@ -565,13 +572,13 @@ def _median_subt_fr_sdi(
                     scal, ann_center, j, fwhm, delta_sep_vec[ann], nframes
                 )
                 matrix_masked = matrix[indices_left]
-                ref_psf_opt = np.nanmedian(matrix_masked, axis=0)
+                ref_psf_opt = bn.nanmedian(matrix_masked, axis=0) 
                 curr_wv = matrix[j]
                 subtracted = curr_wv - ref_psf_opt
                 cube_res[j, yy, xx] = subtracted
 
     elif mode == "fullfr":
-        median_frame = np.nanmedian(multispec_fr, axis=0)
+        median_frame = bn.nanmedian(multispec_fr, axis=0)
         cube_res = multispec_fr - median_frame
 
     if flux_scal is not None:
@@ -626,7 +633,7 @@ def _median_subt_ann_adi(ann, angle_list, n_annuli, fwhm, radius_int,
         else:
             matrix_disc = matrix
 
-        ref_psf_opt = np.nanmedian(matrix_disc, axis=0)
+        ref_psf_opt = bn.nanmedian(matrix_disc, axis=0)
         curr_frame = matrix[frame]
         subtracted = curr_frame - ref_psf_opt
         matrix_res[frame] = subtracted

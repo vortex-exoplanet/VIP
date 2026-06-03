@@ -61,6 +61,7 @@ def cube_inject_fakedisk(
     """
     if not fakedisk.ndim == 2:
         raise TypeError("Fakedisk is not a frame or a 2d array.")
+    angle_list = np.asarray(angle_list)
     if not angle_list.ndim == 1:
         raise TypeError("Input parallactic angle is not a 1d array")
 

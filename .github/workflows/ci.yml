@@ -53,9 +53,14 @@ jobs:
         pip install --editable . --group dev
     - name: Test with pytest
       run: |
-        coverage run --source src -m pytest tests/pre_3_10 --splits 3 --group ${{ matrix.group }}
-        coverage xml
+        if [ "${{ matrix.python-version }}" == "3.14" ]; then
+          coverage run --source src -m pytest tests/pre_3_10 --splits 3 --group ${{ matrix.group }}
+          coverage xml
+        else
+          pytest tests/pre_3_10 --splits 3 --group ${{ matrix.group }}
+        fi
     - name: Upload coverage to Codecov
+      if: matrix.python-version == '3.14'
       uses: codecov/codecov-action@main
 
   objects_check:
@@ -79,7 +84,12 @@ jobs:
         pip install --editable . --group dev
     - name: Test with pytest
       run: |
-        coverage run --source=src/vip_hci/objects/ -m pytest tests/post_3_10
-        coverage xml
+        if [ "${{ matrix.python-version }}" == "3.14" ]; then
+          coverage run --source=src/vip_hci/objects/ -m pytest tests/post_3_10
+          coverage xml
+        else
+          pytest tests/post_3_10
+        fi
     - name: Upload coverage to Codecov
+      if: matrix.python-version == '3.14'
       uses: codecov/codecov-action@main

@@ -70,6 +70,14 @@ def cube_crop_frames(
     else:
         raise TypeError("`Array` is not a cube (3d or 4d numpy.ndarray)")
 
+    if temp_fr.shape[0] == size and temp_fr.shape[1] == size:
+        if verbose:
+            print("Frame size already matches crop size. No cropping needed.")
+        if full_output:
+            ceny, cenx = frame_center(temp_fr)
+            return array, cenx, ceny
+        return array
+
     if xy is not None:
         cenx, ceny = xy
     else:
@@ -129,6 +137,11 @@ def frame_crop(array, size, xy=None, force=False, verbose=True):
     """
     if array.ndim != 2:
         raise TypeError("`Array` is not a frame or 2d array")
+
+    if array.shape[0] == size and array.shape[1] == size:
+        if verbose:
+            print("Frame size already matches crop size. No cropping needed.")
+        return array
 
     if not xy:
         ceny, cenx = frame_center(array)

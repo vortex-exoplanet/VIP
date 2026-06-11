@@ -1032,7 +1032,22 @@ def _adi_rdi_pca(
                 interpolation=interpolation,
                 **rot_options,
             )
-            return gridre
+            if smooth is not None:
+                nout = len(gridre)
+                pca_res = cube_filter_lowpass(gridre[0], mode='gauss',
+                                              fwhm_size=smooth)
+                if full_output==True and source_xy is not None:
+                    frame = frame_filter_lowpass(gridre[1], mode='gauss',
+                                                 fwhm_size=smooth)
+                else:
+                    frame = gridre[1]
+                gridre_new = [pca_res, frame]
+                if nout>2:
+                    diff = nout-2
+                    for d in range(diff):
+                        gridre_new.append(gridre[2+d])
+
+            return tuple(gridre_new)
 
 
 def _adimsdi_singlepca(

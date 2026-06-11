@@ -409,7 +409,7 @@ def cube_rescaling_wavelengths(
                 values are used to pad the end and the end values are used to
                 pad the beginning
     nproc : int, optional
-        Number of processes to use for parallel frame rescaling. Default is 1. 
+        Number of processes to use for parallel frame rescaling. Default is 1.
         Set to None to use half the available CPUs.
 
     Returns
@@ -1215,10 +1215,3 @@ def scale_fft(array, scale, ori_dim=False):
         array_resc = scaled
 
     return array_resc
-
-
-
-
-
-
-

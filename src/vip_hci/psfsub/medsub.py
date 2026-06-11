@@ -572,7 +572,7 @@ def _median_subt_fr_sdi(
                     scal, ann_center, j, fwhm, delta_sep_vec[ann], nframes
                 )
                 matrix_masked = matrix[indices_left]
-                ref_psf_opt = bn.nanmedian(matrix_masked, axis=0) 
+                ref_psf_opt = bn.nanmedian(matrix_masked, axis=0)
                 curr_wv = matrix[j]
                 subtracted = curr_wv - ref_psf_opt
                 cube_res[j, yy, xx] = subtracted

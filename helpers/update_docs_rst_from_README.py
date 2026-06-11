@@ -6,14 +6,14 @@ Update intro text in documentation using text in README.rst
 
 with open("../README.rst") as f_r:
     readme = f_r.readlines()
-str_titles = ['TL;DR', 
+str_titles = ['TL;DR',
               'Installation and dependencies',
               'Image conventions',
               'Contact',
               'Attribution',
               'THE END']
 titles_occ = [0,0,0,1,0,0]
-w_titles = ['TLDR', 
+w_titles = ['TLDR',
             'Installation-and-dependencies',
             'Image-conventions',
             'Contact',
@@ -37,6 +37,6 @@ for i in range(len(str_titles)-1):
                 stop_write=True
             else:
                 continue
-            
-            
+
+
 print("successfully converted README into documentation rst files.")

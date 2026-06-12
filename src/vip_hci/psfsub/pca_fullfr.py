@@ -1035,7 +1035,7 @@ def _adi_rdi_pca(
             if smooth is not None:
                 nout = len(gridre)
                 pca_res = cube_filter_lowpass(gridre[0], mode='gauss',
-                                              fwhm_size=smooth)
+                                              fwhm_size=smooth, verbose=False)
                 if full_output==True and source_xy is not None:
                     frame = frame_filter_lowpass(gridre[1], mode='gauss',
                                                  fwhm_size=smooth)
@@ -1046,8 +1046,9 @@ def _adi_rdi_pca(
                     diff = nout-2
                     for d in range(diff):
                         gridre_new.append(gridre[2+d])
+                gridre = tuple(gridre_new)
 
-            return tuple(gridre_new)
+            return gridre
 
 
 def _adimsdi_singlepca(

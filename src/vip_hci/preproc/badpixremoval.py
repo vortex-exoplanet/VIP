@@ -172,7 +172,7 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
         bpm_mask = bpm_mask.astype('bool')
 
     smoothed = median_filter(frame, size, mode='mirror')
-    frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]
+    frame[bpm_mask] = smoothed[bpm_mask]
     array_out = frame
     count_bp = np.sum(bpm_mask)
 
@@ -1927,12 +1927,9 @@ def reject_outliers(data, test_value, m=5., stddev=None, debug=False):
                 stddev = np.std(data)
 
             med = np.median(data)
-            d = data.copy()
-            d_flat = d.flatten()
-            for i in range(d_flat.shape[0]):
-                d_flat[i] = np.abs(data.flatten()[i] - med)
+            d_flat = np.abs(data.flatten() - med)
             mdev = np.median(d_flat)
-            if max(np.max(d), np.abs(test_value-med)) > stddev:
+            if max(np.max(data), np.abs(test_value-med)) > stddev:
                 test = np.abs((test_value-med)/mdev)
                 if test < m:
                     test_result = 0

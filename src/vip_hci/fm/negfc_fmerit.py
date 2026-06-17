@@ -251,7 +251,7 @@ def chisquare(
         imlib=imlib_sh,
         interpolation=interpolation,
         transmission=transmission,
-        radial_gradient=radial_gradient, 
+        radial_gradient=radial_gradient,
         verbose=False
     )
 

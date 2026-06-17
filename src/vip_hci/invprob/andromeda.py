@@ -134,7 +134,7 @@ def andromeda(*all_args: List, **all_kwargs: dict):
         by ``roa * annuli_width``.
         ``roa`` is forced to ``1`` when ``opt_method="no"`` is chosen.
         IDL parameter: ``RATIO_OPT_AREA_INPUT``
-    opt_method : {'no', 'total', 'lsq', 'robust'}, optional
+    opt_method : {'no', 'total', 'lsq', 'l1'}, optional
         Method used to balance for the flux difference that exists between the
         two subtracted annuli in an optimal way during ADI.
         IDL parameter: ``OPT_METHOD_ANG_INPUT``

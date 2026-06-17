@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -26,7 +26,6 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
   "Topic :: Scientific/Engineering :: Astronomy",
 ]
-urls.Homepage = "https://github.com/vortex-exoplanet/VIP"
 dependencies = [
     "astropy>=5.0.0",
     "corner>=2.2.1",
@@ -44,6 +43,10 @@ dependencies = [
     "scikit-image>=0.19.0",
     "scikit-learn>=1.0.2",
 ]
+
+[project.urls]
+Homepage = "https://github.com/vortex-exoplanet/VIP"
+Issues = "https://github.com/vortex-exoplanet/VIP/issues"
 
 [dependency-groups]
 dev = [
@@ -67,3 +70,13 @@ dev = [
     "sphinx_rtd_theme",
     "jupyter_sphinx",
 ]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"vip_hci" = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"

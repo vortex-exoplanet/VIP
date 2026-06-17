@@ -97,7 +97,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
         Number of CPUs to use for multiprocessing. If None, will be
         automatically set to half the number of available CPUs.
     copy_array: bool, optional
-        Default is True. If False, ``array`` is not copied before injection. This is intended for 
+        Default is True. If False, ``array`` is not copied before injection. This is intended for
         computing performance when ``array`` can be modified.
 
     Returns

@@ -18,14 +18,15 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
-    - uses: actions/setup-python@v6
-      with:
-        python-version: "3.14"
-    - name: Run pre-commit
-      run: |
-        pip install pre-commit
-        pre-commit run --files src/**/*.py
+      - uses: actions/checkout@main
+      - uses: actions/setup-python@main
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Run pre-commit
+        run: |
+          pip install pre-commit
+          pre-commit run --files $(git ls-files "*.py")
 
   no_object_checks:
     needs: pre-commit
@@ -33,30 +34,73 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version:
-          - "3.11"
-          - "3.12"
-          - "3.13"
-          - "3.14"
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
         group: [1, 2, 3]
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@main
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@main
       with:
         python-version: ${{ matrix.python-version }}
         cache: pip
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install --editable . --group dev
-    - name: Test with pytest
+
+    - name: Test with pytest + coverage
+      if: matrix.python-version == '3.14'
       run: |
-        coverage run --source src -m pytest tests/pre_3_10 --splits 3 --group ${{ matrix.group }}
-        coverage xml
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v6
+        coverage run --source src --parallel-mode -m pytest tests/pre_3_10 --splits 3 --group ${{ matrix.group }}
+
+    - name: Test with pytest
+      if: matrix.python-version != '3.14'
+      run: pytest tests/pre_3_10 --splits 3 --group ${{ matrix.group }}
+
+    # upload each coverage shard file for combining later
+    - name: Upload coverage shard
+      if: matrix.python-version == '3.14'
+      uses: actions/upload-artifact@main
+      with:
+        name: coverage-no-objects-group-${{ matrix.group }}
+        path: .coverage.*
+        include-hidden-files: true
+
+  # combine the three shards before uploading to codecov
+  coverage_no_objects:
+    needs: no_object_checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+
+      - uses: actions/setup-python@main
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --editable . --group dev
+
+      - name: Download coverage shards
+        uses: actions/download-artifact@main
+        with:
+          pattern: coverage-no-objects-group-*
+          merge-multiple: true
+
+      - name: Combine and export coverage
+        run: |
+          coverage combine
+          coverage xml
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@main
+        with:
+          flags: no_objects  # distinguishes this suite in the Codecov UI
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   objects_check:
     needs: pre-commit
@@ -67,19 +111,31 @@ jobs:
         python-version: ["3.11", "3.12", "3.13", "3.14"]
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@main
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@main
       with:
         python-version: ${{ matrix.python-version }}
         cache: pip
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install --editable . --group dev
-    - name: Test with pytest
+
+    - name: Test with pytest + coverage
+      if: matrix.python-version == '3.14'
       run: |
         coverage run --source=src/vip_hci/objects/ -m pytest tests/post_3_10
         coverage xml
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v6
+
+    - name: Test with pytest
+      if: matrix.python-version != '3.14'
+      run: pytest tests/post_3_10
+
+    - name: Upload to Codecov
+      if: matrix.python-version == '3.14'
+      uses: codecov/codecov-action@main
+      with:
+        flags: objects
+        token: ${{ secrets.CODECOV_TOKEN }}

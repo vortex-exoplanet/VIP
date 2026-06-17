@@ -146,7 +146,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
         but has no additional options for the extraction of circumstellar signal
         at each iteration (all signals > 0 are considered). Installation of the
         GreeDS package is required for this option.
-        - If 'Christiaens24': Same as 'Juillard23' but not in Torch, and with 
+        - If 'Christiaens24': Same as 'Juillard23' but not in Torch, and with
         the extra parameters ``thr`` and ``ncomp_step`` available.
     ncomp : int or tuple/list of 2 or 3 int, optional
         How many PCs are used as a lower-dimensional subspace to project the
@@ -154,12 +154,12 @@ def ipca(*all_args: List, **all_kwargs: dict):
         - if mode is None:
             * strategy in {'ADI', 'RDI', 'ARDI'} and no ``mask_rdi`` provided:
             an int must be provided, ``ncomp`` is the fixed number of PCs to use
-            
+
             * strategy in {'RADI' , 'RARDI'} and no ``mask_rdi`` is provided:
             an int or a tuple/list of 2 int is accepted. In the latter case, the
             first value is used for IPCA-RDI, and the second for IPCA-ADI for
             the remaining iterations after the former converged.
-            
+
             * strategy in {'ADI', 'RDI', 'ARDI} and ``mask_rdi`` is provided: an
             int or a tuple/list of 2 int can be provided. In the latter case,
             the first value is used for PCA-data imputation at the first
@@ -170,12 +170,12 @@ def ipca(*all_args: List, **all_kwargs: dict):
             the first value is used for PCA-data imputation at the first
             iteration, the second for IPCA-RDI，and the third for IPCA-ADI for
             the remaining iterations after the former converged.
-            
+
          - if mode is not None:
              ncomp should correspond to the maximum number of principal
              components to be tested. The first ncomp will be ``ncomp_start``
              and the increment will be ``ncomp_step``.
-             
+
     ncomp_start: int, opt
         For incremental versions of iterative PCA (i.e. if mode is 'Juillard23'
         or 'Christiaens24'), this is the number of principal components at the
@@ -188,10 +188,10 @@ def ipca(*all_args: List, **all_kwargs: dict):
         Number of iterations for the iterative PCA.
         - if mode is None:
             total number of iterations
-            
+
         - if mode is 'Juillard23', or 'Christiaens24':
             iterations per tested ncomp.
-            
+
     strategy: str {'ADI, 'RDI', 'ARDI', 'RADI', 'RARDI''}, opt
         Whether to do iterative ADI only ('ADI'), iterative RDI only ('RDI'),
         iterative ADI and RDI together ('ARDI', i.e. with a combined PCA
@@ -201,7 +201,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
         'ARDI', 'RADI' and 'RARDI'.
     thr: float or 'auto', opt
         Minimum threshold used to identify significant signals in the PCA image
-        obtained at each iteration, according to ``thr_mode``. 
+        obtained at each iteration, according to ``thr_mode``.
     thr_mode: str {'STIM', 'abs'}, opt
         How the threshold is expressed: whether based on the STIM map ('STIM')
         or expressed as absolute pixel intensity threshold ('abs'). The optimal
@@ -615,9 +615,9 @@ def ipca(*all_args: List, **all_kwargs: dict):
         pca_params['ncomp'] = final_ncomp[0]
         pca_params['cube'] = cube_tmp
         pca_params['cube_ref'] = cube_ref_tmp
-        
+
         res = pca(**pca_params, **rot_options)
-        
+
         frame = res[0]
         residuals_cube = res[-2]
         residuals_cube_ = res[-1]

@@ -66,6 +66,9 @@ def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
     use2alone: bool, optional
         Whether to use array2 alone to estimate the noise (might be useful to
         estimate the snr of extended disk features).
+    exclude_negative_lobes : bool, opt
+        Whether to include the adjacent aperture lobes to the tested location
+        or not. Can be set to True if the image shows significant neg lobes.
     verbose: bool, optional
         Whether to print timing or not.
     **kwargs : dictionary, optional

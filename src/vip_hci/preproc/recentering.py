@@ -1251,6 +1251,8 @@ def cube_recenter_dft_upsampling(array, upsample_factor=100, subi_size=None,
         start_time = time_ini()
 
     check_array(array, dim=3)
+    if array.shape[0] < 2:
+        raise TypeError("Input array cube should have more than 1 frame.")
     if mask is not None:
         if mask.shape != array.shape[-2:]:
             msg = "If provided, mask should have same shape as frames"
@@ -1296,7 +1298,7 @@ def cube_recenter_dft_upsampling(array, upsample_factor=100, subi_size=None,
     if nproc is None:
         nproc = cpu_count() // 2  # Hyper-threading doubles the # of cores
 
-    if nproc == 1:
+    if nproc == 1 or n_frames < nproc:
         for i in Progressbar(range(1, n_frames),
                              desc="frames", verbose=verbose):
             y[i], x[i], array_rec[i] = _shift_dft(array_rec, array_rec, i,

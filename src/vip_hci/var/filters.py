@@ -629,7 +629,12 @@ def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
     return array_out
 
 
-def frame_deconvolution(array, psf, n_it=30):
+def frame_deconvolution(
+    array: np.ndarray,
+    psf: np.ndarray,
+    num_iter: int = 30,
+    clip: bool = False,
+) -> np.ndarray:
     """
     Deconvolve image iteratively following the scikit-image implementation\
     of the Richardson-Lucy algorithm, described in [RIC72]_ and [LUC74]_.
@@ -642,16 +647,21 @@ def frame_deconvolution(array, psf, n_it=30):
 
     Parameters
     ----------
-    array : numpy ndarray
+    array : numpy.ndarray
         Input image, 2d frame.
-    psf : numpy ndarray
+    psf : numpy.ndarray
         Input psf, 2d frame.
-    n_it : int, optional
+    num_iter : int, optional
         Number of iterations.
+    clip : bool, optional
+        Passed to scikit-image to control whether the final image should cap
+        pixel intensities between [-1, 1]. Default is False, because
+        Richardson-Lucy on a point source can cause iterations to go above 1 at
+        the peak.
 
     Returns
     -------
-    deconv : numpy ndarray
+    deconv : numpy.ndarray
         Deconvolved image.
 
     """
@@ -660,12 +670,15 @@ def frame_deconvolution(array, psf, n_it=30):
     if psf.ndim != 2:
         raise TypeError('Input psf is not a frame or 2d array.')
 
-    max_I = np.amax(array)
-    min_I = np.amin(array)
-    drange = max_I-min_I
+    if not np.isclose(psf.sum(), 1.0, atol=1e-2):
+        psf = psf / psf.sum()  # skimage assumes the psf is normalized already
 
-    deconv = richardson_lucy((array-min_I)/drange, psf, iterations=n_it)
+    max_val = float(np.amax(array))
+    min_val = float(np.amin(array))
+    drange = max_val - min_val
+
+    deconv = richardson_lucy((array - min_val) / drange, psf, num_iter=num_iter, clip=clip)
     deconv *= drange
-    deconv += min_I
+    deconv += min_val
 
     return deconv

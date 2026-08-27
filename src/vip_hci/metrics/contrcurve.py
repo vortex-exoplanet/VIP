@@ -175,7 +175,7 @@ def contrast_curve(
         pixels, the noise and the sigma corrected (if Student is True).
 
     If full_output is True then the function returns:
-        datafr, cube_fc_all, frame_fc_all, frame_nofc and fc_map_all.
+        datafr, frame_fc_all, frame_nofc and fc_map_all.
 
     frame_fc_all : numpy ndarray
         3d array with the 3 frames of the 3 (patterns) processed cubes with

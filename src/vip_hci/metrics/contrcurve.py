@@ -84,7 +84,7 @@ def contrast_curve(
         non-coronagraphic PSF which we use to scale the contrast. If a vector
         is given it must contain the photometry correction for each frame.
     algo : callable or function
-        The post-processing algorithm, e.g. vip_hci.pca.pca.
+        The post-processing algorithm, e.g. vip_hci.psfsub.pca.
     sigma : int
         Sigma level for contrast calculation. Note this is a "Gaussian sigma"
         regardless of whether Student t correction is performed (set by the

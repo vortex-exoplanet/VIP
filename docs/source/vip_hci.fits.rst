@@ -9,21 +9,21 @@ vip\_hci.fits.fits module
 
 .. automodule:: vip_hci.fits.fits
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 vip\_hci.fits.headers module
 ----------------------------
 
 .. automodule:: vip_hci.fits.headers
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: vip_hci.fits
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

@@ -740,7 +740,7 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
             planet_parameter = (r_guess, theta_guess, f_guess[0])
         else:
             r_all = [r_guess]*len(f_guess)
-            theta_all = [r_guess]*len(f_guess)
+            theta_all = [theta_guess]*len(f_guess)
             planet_parameter = np.array([r_all, theta_all, f_guess])
         array = cube_planet_free(planet_parameter, cube, angs, psfn,
                                  imlib=imlib, interpolation=interpolation,

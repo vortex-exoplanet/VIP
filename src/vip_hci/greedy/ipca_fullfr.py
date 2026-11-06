@@ -44,7 +44,7 @@ The concept was proposed in [PAI18]_ and [PAI21].
 """
 
 __author__ = 'Valentin Christiaens, Sandrine Juillard'
-__all__ = ['ipca']
+__all__ = ['ipca', 'IPCA_Params']
 
 from dataclasses import dataclass
 import numpy as np

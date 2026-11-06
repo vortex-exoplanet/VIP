@@ -33,9 +33,9 @@ def cube_inject_fakedisk(
         Vector containing the parallactic angles to be associated with the cube
          images.
     transmission: numpy.ndarray, optional
-        Array with 2 columns. First column is the radial separation in pixels.
-        Second column is the off-axis transmission (between 0 and 1) at the
-        radial separation given in the first column. This is used to apply a
+        Array with 2 rows. First row is the radial separation in pixels.
+        Second row is the off-axis transmission (between 0 and 1) at the
+        radial separation given in the first row. This is used to apply a
         transmission profile to the fake disk.
     psf : numpy.ndarray, float or int, optional
         The PSF to convolve the disk cube with. It can be a small

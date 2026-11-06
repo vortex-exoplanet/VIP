@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@main
       - uses: actions/setup-python@main
         with:
-          python-version: "3.14"
+          python-version: "3.15"
           cache: pip
       - name: Run pre-commit
         run: |
@@ -34,7 +34,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.12", "3.13", "3.14", "3.15"]
         group: [1, 2, 3]
 
     steps:
@@ -51,17 +51,17 @@ jobs:
         pip install --editable . --group dev
 
     - name: Test with pytest + coverage
-      if: matrix.python-version == '3.14'
+      if: matrix.python-version == '3.15'
       run: |
         coverage run --source src --parallel-mode -m pytest tests/pre_3_10 --splits 3 --group ${{ matrix.group }}
 
     - name: Test with pytest
-      if: matrix.python-version != '3.14'
+      if: matrix.python-version != '3.15'
       run: pytest tests/pre_3_10 --splits 3 --group ${{ matrix.group }}
 
     # upload each coverage shard file for combining later
     - name: Upload coverage shard
-      if: matrix.python-version == '3.14'
+      if: matrix.python-version == '3.15'
       uses: actions/upload-artifact@main
       with:
         name: coverage-no-objects-group-${{ matrix.group }}
@@ -77,7 +77,7 @@ jobs:
 
       - uses: actions/setup-python@main
         with:
-          python-version: "3.14"
+          python-version: "3.15"
           cache: pip
 
       - name: Install dependencies
@@ -108,7 +108,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.12", "3.13", "3.14", "3.15"]
 
     steps:
     - uses: actions/checkout@main
@@ -124,17 +124,17 @@ jobs:
         pip install --editable . --group dev
 
     - name: Test with pytest + coverage
-      if: matrix.python-version == '3.14'
+      if: matrix.python-version == '3.15'
       run: |
         coverage run --source=src/vip_hci/objects/ -m pytest tests/post_3_10
         coverage xml
 
     - name: Test with pytest
-      if: matrix.python-version != '3.14'
+      if: matrix.python-version != '3.15'
       run: pytest tests/post_3_10
 
     - name: Upload to Codecov
-      if: matrix.python-version == '3.14'
+      if: matrix.python-version == '3.15'
       uses: codecov/codecov-action@main
       with:
         flags: objects

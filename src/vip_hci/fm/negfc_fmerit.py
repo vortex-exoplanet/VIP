@@ -467,6 +467,7 @@ def get_values_optimize(
 
     algo_opt_copy = algo_options.copy()
     ncomp = algo_opt_copy.pop("ncomp", ncomp)
+    annulus_width = algo_opt_copy.pop("annulus_width", annulus_width)
     svd_mode = algo_opt_copy.pop("svd_mode", svd_mode)
     scaling = algo_opt_copy.pop("scaling", scaling)
     imlib = algo_opt_copy.pop("imlib", imlib)

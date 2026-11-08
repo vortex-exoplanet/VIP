@@ -27,13 +27,13 @@ vip\_hci.vip\_ds9 module
 
 .. automodule:: vip_hci.vip_ds9
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: vip_hci
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

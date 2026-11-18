@@ -1,7 +1,7 @@
 VIP - Vortex Image Processing package
 =====================================
 
-|VIP| |Versions| |License| |ArXiV| |docs| |codecov| |DOI| |Zenodo| |EMAC|
+|VIP| |Versions| |License| |ArXiV| |docs| |codecov| |DOI| |Zenodo| |EMAC| |Zulip|
 
 .. |VIP| image:: https://badge.fury.io/py/vip-hci.svg
         :target: https://pypi.python.org/pypi/vip-hci
@@ -85,6 +85,12 @@ online with `nbviewer
 <http://nbviewer.jupyter.org/github/vortex-exoplanet/VIP_extras/blob/master/tutorials/01_quickstart.ipynb>`_.
 If you are new to the Jupyter notebook application check out the `beginner's guide
 <https://jupyter-notebook-beginner-guide.readthedocs.io/en/latest/what_is_jupyter.html>`_.
+
+
+Community
+---------
+
+A Zulip workspace has been created to gather the VIP community, and is free for all to join. Besides a Q/A channel, a number of projects leveraging VIP are on-going in private channels. Zulip is an open-source alternative to Slack, whose free plan allows for unlimited messages. To join the Zulip workspace: https://vip-hci.zulipchat.com/join/zt5kha7atf2utyqdsiuc5ie2/
 
 
 TL;DR setup guide
@@ -200,12 +206,6 @@ that you are able to import VIP:
    import vip_hci as vip
 
 If everything went fine with the installation, you should not get any error message upon importation, and you can start finding exoplanets!
-
-
-Community
----------
-
-A Zulip workspace has been created to gather the VIP community, and is free for all to join. Besides a Q/A channel, a number of projects leveraging VIP are on-going in private channels. Zulip is an open-source alternative to Slack, whose free plan allows for unlimited messages. To join the Zulip workspace: https://vip-hci.zulipchat.com/join/zt5kha7atf2utyqdsiuc5ie2/
 
 
 Conventions

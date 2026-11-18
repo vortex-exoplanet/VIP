@@ -12,7 +12,7 @@ VIP - Vortex Image Processing package
 .. |License| image:: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
             :target: https://github.com/vortex-exoplanet/VIP/blob/master/LICENSE
 
-.. |ArXiV| image:: https://img.shields.io/badge/arXiv-1705.06184%20-yellowgreen.svg
+.. |ArXiV| image:: https://img.shields.io/badge/ArXiV-1705.06184-yellowgreen.svg
           :target: https://arxiv.org/abs/1705.06184
 
 .. |docs| image:: https://readthedocs.org/projects/vip/badge/?version=latest
@@ -29,6 +29,9 @@ VIP - Vortex Image Processing package
 
 .. |EMAC| image:: https://img.shields.io/badge/EMAC-2207--116-blue
          :target: https://emac.gsfc.nasa.gov/?cid=2207-116
+
+.. |Zulip| image:: https://img.shields.io/badge/Zulip-chat-cyan
+         :target: https://vip-hci.zulipchat.com/join/zt5kha7atf2utyqdsiuc5ie2/
 
 ::
 
@@ -197,6 +200,12 @@ that you are able to import VIP:
    import vip_hci as vip
 
 If everything went fine with the installation, you should not get any error message upon importation, and you can start finding exoplanets!
+
+
+Community
+---------
+
+A Zulip workspace has been created to gather the VIP community, and is free for all to join. Besides a Q/A channel, a number of projects leveraging VIP are on-going in private channels. Zulip is an open-source alternative to Slack, whose free plan allows for unlimited messages. To join the Zulip workspace: https://vip-hci.zulipchat.com/join/zt5kha7atf2utyqdsiuc5ie2/
 
 
 Conventions

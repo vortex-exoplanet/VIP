@@ -1,7 +1,7 @@
 VIP - Vortex Image Processing package
 =====================================
 
-|VIP| |Versions| |License| |ArXiV| |docs| |codecov| |DOI| |Zenodo| |EMAC| |Zulip|
+|VIP| |Versions| |License| |ArXiV| |docs| |codecov| |JOSS| |Zenodo| |EMAC| |Zulip|
 
 .. |VIP| image:: https://badge.fury.io/py/vip-hci.svg
         :target: https://pypi.python.org/pypi/vip-hci
@@ -21,10 +21,10 @@ VIP - Vortex Image Processing package
 .. |codecov| image:: https://codecov.io/gh/vortex-exoplanet/VIP/branch/master/graph/badge.svg?token=HydCFQqLRf
             :target: https://codecov.io/gh/vortex-exoplanet/VIP
 
-.. |DOI| image:: https://joss.theoj.org/papers/10.21105/joss.04774/status.svg
-        :target: https://doi.org/10.21105/joss.04774
+.. |JOSS| image:: https://joss.theoj.org/papers/10.21105/joss.04774/status.svg
+         :target: https://doi.org/10.21105/joss.04774
 
-.. |Zenodo| image:: https://zenodo.org/badge/DOI-10.5281-blue.svg
+.. |Zenodo| image:: https://doi.org/10.5281/zenodo.7499314
            :target: https://doi.org/10.5281/zenodo.7499314
 
 .. |EMAC| image:: https://img.shields.io/badge/EMAC-2207--116-yellow

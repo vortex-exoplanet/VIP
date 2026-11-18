@@ -1,7 +1,7 @@
 VIP - Vortex Image Processing package
 =====================================
 
-|VIP| |Versions| |License| |ArXiV| |docs| |codecov| |DOI| |Zenodo| |EMAC|
+|VIP| |Versions| |License| |ArXiV| |docs| |codecov| |JOSS| |Zenodo| |EMAC| |Zulip|
 
 .. |VIP| image:: https://badge.fury.io/py/vip-hci.svg
         :target: https://pypi.python.org/pypi/vip-hci
@@ -9,10 +9,10 @@ VIP - Vortex Image Processing package
 .. |Versions| image:: https://img.shields.io/badge/Python-3.12%2C%203.13%2C%203.14%2C%203.15-brightgreen.svg
              :target: https://pypi.python.org/pypi/vip-hci
 
-.. |License| image:: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
+.. |License| image:: https://img.shields.io/badge/license-MIT-darkblue.svg
             :target: https://github.com/vortex-exoplanet/VIP/blob/master/LICENSE
 
-.. |ArXiV| image:: https://img.shields.io/badge/arXiv-1705.06184%20-yellowgreen.svg
+.. |ArXiV| image:: https://img.shields.io/badge/ArXiV-1705.06184-yellowgreen.svg
           :target: https://arxiv.org/abs/1705.06184
 
 .. |docs| image:: https://readthedocs.org/projects/vip/badge/?version=latest
@@ -21,14 +21,17 @@ VIP - Vortex Image Processing package
 .. |codecov| image:: https://codecov.io/gh/vortex-exoplanet/VIP/branch/master/graph/badge.svg?token=HydCFQqLRf
             :target: https://codecov.io/gh/vortex-exoplanet/VIP
 
-.. |DOI| image:: https://joss.theoj.org/papers/10.21105/joss.04774/status.svg
-        :target: https://doi.org/10.21105/joss.04774
+.. |JOSS| image:: https://joss.theoj.org/papers/10.21105/joss.04774/status.svg
+         :target: https://doi.org/10.21105/joss.04774
 
 .. |Zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.7499314.svg
            :target: https://doi.org/10.5281/zenodo.7499314
 
-.. |EMAC| image:: https://img.shields.io/badge/EMAC-2207--116-blue
+.. |EMAC| image:: https://img.shields.io/badge/EMAC-2207--116-yellow
          :target: https://emac.gsfc.nasa.gov/?cid=2207-116
+
+.. |Zulip| image:: https://img.shields.io/badge/Zulip-chat-cyan
+         :target: https://vip-hci.zulipchat.com/join/zt5kha7atf2utyqdsiuc5ie2/
 
 ::
 
@@ -82,6 +85,12 @@ online with `nbviewer
 <http://nbviewer.jupyter.org/github/vortex-exoplanet/VIP_extras/blob/master/tutorials/01_quickstart.ipynb>`_.
 If you are new to the Jupyter notebook application check out the `beginner's guide
 <https://jupyter-notebook-beginner-guide.readthedocs.io/en/latest/what_is_jupyter.html>`_.
+
+
+Community
+---------
+
+A Zulip workspace has been created to gather the VIP community, and is free for all to join. Besides a Q/A channel, projects leveraging VIP can be discussed in private channels, to which other VIP users can be invited. Zulip is an open-source alternative to Slack, whose free plan allows for unlimited messages. To join the Zulip workspace: https://vip-hci.zulipchat.com/join/zt5kha7atf2utyqdsiuc5ie2/
 
 
 TL;DR setup guide

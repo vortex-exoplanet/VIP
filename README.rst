@@ -24,7 +24,7 @@ VIP - Vortex Image Processing package
 .. |JOSS| image:: https://joss.theoj.org/papers/10.21105/joss.04774/status.svg
          :target: https://doi.org/10.21105/joss.04774
 
-.. |Zenodo| image:: https://doi.org/10.5281/zenodo.7499314
+.. |Zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.7499314.svg
            :target: https://doi.org/10.5281/zenodo.7499314
 
 .. |EMAC| image:: https://img.shields.io/badge/EMAC-2207--116-yellow

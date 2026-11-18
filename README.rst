@@ -90,7 +90,7 @@ If you are new to the Jupyter notebook application check out the `beginner's gui
 Community
 ---------
 
-A Zulip workspace has been created to gather the VIP community, and is free for all to join. Besides a Q/A channel, a number of projects leveraging VIP are on-going in private channels. Zulip is an open-source alternative to Slack, whose free plan allows for unlimited messages. To join the Zulip workspace: https://vip-hci.zulipchat.com/join/zt5kha7atf2utyqdsiuc5ie2/
+A Zulip workspace has been created to gather the VIP community, and is free for all to join. Besides a Q/A channel, projects leveraging VIP can be discussed in private channels, to which other VIP users can be invited. Zulip is an open-source alternative to Slack, whose free plan allows for unlimited messages. To join the Zulip workspace: https://vip-hci.zulipchat.com/join/zt5kha7atf2utyqdsiuc5ie2/
 
 
 TL;DR setup guide

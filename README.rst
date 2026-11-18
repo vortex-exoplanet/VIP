@@ -9,7 +9,7 @@ VIP - Vortex Image Processing package
 .. |Versions| image:: https://img.shields.io/badge/Python-3.12%2C%203.13%2C%203.14%2C%203.15-brightgreen.svg
              :target: https://pypi.python.org/pypi/vip-hci
 
-.. |License| image:: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
+.. |License| image:: https://img.shields.io/badge/license-MIT-darkblue.svg
             :target: https://github.com/vortex-exoplanet/VIP/blob/master/LICENSE
 
 .. |ArXiV| image:: https://img.shields.io/badge/ArXiV-1705.06184-yellowgreen.svg
@@ -24,10 +24,10 @@ VIP - Vortex Image Processing package
 .. |DOI| image:: https://joss.theoj.org/papers/10.21105/joss.04774/status.svg
         :target: https://doi.org/10.21105/joss.04774
 
-.. |Zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.7499314.svg
+.. |Zenodo| image:: https://zenodo.org/badge/DOI-10.5281-blue.svg
            :target: https://doi.org/10.5281/zenodo.7499314
 
-.. |EMAC| image:: https://img.shields.io/badge/EMAC-2207--116-blue
+.. |EMAC| image:: https://img.shields.io/badge/EMAC-2207--116-yellow
          :target: https://emac.gsfc.nasa.gov/?cid=2207-116
 
 .. |Zulip| image:: https://img.shields.io/badge/Zulip-chat-cyan
